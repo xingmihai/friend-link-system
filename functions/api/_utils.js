@@ -125,36 +125,33 @@ export async function setList(env, key, arr) {
   await env.LINKS.put(key, JSON.stringify(arr));
 }
 
-// 邮件发送统一入口（MailChannels - 免费，无需 API Key）
+// 邮件发送（Resend API）
 export async function sendEmail(env, subject, html) {
   const raw = await env.LINKS.get('config:email');
   if (!raw) throw new Error('邮件未配置');
   const cfg = JSON.parse(raw);
-  if (!cfg.from || !cfg.to) throw new Error('请填写发件邮箱和收件邮箱');
+  if (!cfg.apiKey || !cfg.from || !cfg.to) throw new Error('邮件配置不完整（apiKey/from/to）');
 
-  const payload = {
-    personalizations: [{ to: [{ email: cfg.to }] }],
-    from: {
-      email: cfg.from,
-      name: cfg.fromName || '友链系统'
-    },
-    subject,
-    content: [{ type: 'text/html', value: html }]
-  };
-
-  const resp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+  const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    headers: {
+      'Authorization': `Bearer ${cfg.apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: cfg.fromName ? `${cfg.fromName} <${cfg.from}>` : cfg.from,
+      to: cfg.to,
+      subject,
+      html
+    })
   });
 
-  // MailChannels 返回 202 = 已接纳，200 = 已发送
-  if (resp.ok) {
+  if (!resp.ok) {
     const text = await resp.text();
-    try { return JSON.parse(text); } catch { return { status: 'sent', message: text }; }
+    throw new Error(`发送失败 (${resp.status}): ${text}`);
   }
-  const errText = await resp.text();
-  throw new Error(`发送失败 (${resp.status}): ${errText}`);
+  return await resp.json();
+}
 }
 
 // 图床上传

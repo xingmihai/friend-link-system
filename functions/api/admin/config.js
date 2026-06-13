@@ -1,5 +1,5 @@
 // functions/api/admin/config.js
-// 邮件配置（MailChannels）+ 图床配置
+// 邮件配置（Resend）+ 图床配置
 import { ok, err, requireAdmin } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
@@ -7,9 +7,12 @@ export async function onRequestGet({ request, env }) {
   if (!auth.ok) return err(auth.reason, 401);
   const email = JSON.parse(await env.LINKS.get('config:email') || 'null');
   const tuCang = JSON.parse(await env.LINKS.get('config:tuCang') || 'null');
-  // 掩码 token
-  const safe = (obj) => obj ? { ...obj, token: obj.token ? '******' : '' } : null;
-  return ok({ email: email || null, tuCang: safe(tuCang) });
+  const safe = (obj) => obj ? {
+    ...obj,
+    apiKey: obj.apiKey ? '******' : '',
+    token: obj.token ? '******' : ''
+  } : null;
+  return ok({ email: safe(email), tuCang: safe(tuCang) });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -21,8 +24,13 @@ export async function onRequestPost({ request, env }) {
   const { type, data } = body;
 
   if (type === 'email') {
-    if (!data.from || !data.to) return err('发件邮箱和收件邮箱必填');
+    if (data.apiKey === '******') {
+      const old = JSON.parse(await env.LINKS.get('config:email') || '{}');
+      data.apiKey = old.apiKey || '';
+    }
+    if (!data.apiKey || !data.from || !data.to) return err('apiKey、from、to 必填');
     await env.LINKS.put('config:email', JSON.stringify({
+      apiKey: data.apiKey.trim(),
       from: data.from.trim(),
       fromName: (data.fromName || '').trim(),
       to: data.to.trim()

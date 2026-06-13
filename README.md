@@ -105,15 +105,13 @@ Cloudflare Pages Functions **不支持** Cron Triggers（只有单独部署的 W
 
 ### 7. 配置邮件服务
 
-使用 **MailChannels**（CF 官方合作，免费 3000 封/月，无需注册）。
+使用 **Resend** API（免费 100 封/天，3000 封/月，无需绑卡）。
 
-**前置条件**：在你的域名 DNS 添加 SPF 记录：
-
-| 类型 | 名称 | 内容 |
-|------|------|------|
-| TXT  | @    | `v=spf1 include:relay.mailchannels.net ~all` |
-
-> 如果你用 Cloudflare DNS：Dashboard → 域名 → DNS → 添加记录，60 秒生效。
+1. 注册 [resend.com](https://resend.com) → **Add domain** 验证你的域名
+2. 去 Dashboard 验证域名（添加 DNS TXT/DKIM 记录，按 Resend 提示操作）
+3. 拿到 **API Key**（`re_xxxxx` 格式）
+4. 登录管理后台 → **邮件配置** → 填入 API Key、发件邮箱（已验证的域名地址）、收件邮箱
+5. 点 **发送测试邮件** 验证
 
 然后登录管理后台 → **邮件配置**，填入：
 - **发件邮箱**：`noreply@你的域名.com`
