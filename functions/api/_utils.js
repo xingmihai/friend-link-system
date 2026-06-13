@@ -68,10 +68,16 @@ export function parseCookies(req) {
   return out;
 }
 
-// 管理员鉴权
+// 管理员鉴权（支持 Authorization header 和 Cookie 两种方式）
 export async function requireAdmin(req, env) {
-  const cookies = parseCookies(req);
-  const token = cookies['admin_token'];
+  // 1. 优先检查 Authorization header
+  const auth = req.headers.get('Authorization') || '';
+  let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  // 2. 没有则从 Cookie 读
+  if (!token) {
+    const cookies = parseCookies(req);
+    token = cookies['admin_token'] || '';
+  }
   if (!token) return { ok: false, reason: '未登录' };
   const session = await env.LINKS.get(`session:${token}`);
   if (!session) return { ok: false, reason: '会话已过期' };

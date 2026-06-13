@@ -51,7 +51,7 @@ async function onRequestPost({ request, env }) {
     );
 
     return new Response(
-      JSON.stringify({ success: true, data: { mustChangePassword: mustChange } }),
+      JSON.stringify({ success: true, data: { mustChangePassword: mustChange, token } }),
       {
         status: 200,
         headers: {

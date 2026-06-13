@@ -314,37 +314,57 @@ function admin() {
 
     sidebarClass(t) { return t === this.tab ? 'sidebar-link active' : 'sidebar-link text-white/80 hover:bg-white/5'; },
 
+    // 从 localStorage 取 token 拼 Authorization header（比纯 cookie 持久可靠）
+    authHeaders() {
+      const t = localStorage.getItem('admin_token');
+      return t ? { 'Authorization': 'Bearer ' + t } : {};
+    },
+
     init() {
       window.addEventListener('resize', () => {
         this.sidebarOpen = window.innerWidth >= 1024;
       });
-      // 检查 session cookie 是否还在（刷新后自动恢复登录态）
       this.checkAuth();
     },
 
     async checkAuth() {
+      const t = localStorage.getItem('admin_token');
+      if (!t) return;
       try {
-        const r = await fetch('/api/admin/list?status=pending', { credentials: 'include' });
+        const r = await fetch('/api/admin/list?status=pending', {
+          credentials: 'include', headers: { ...this.authHeaders() }
+        });
         if (r.ok) {
           this.loggedIn = true;
           const d = await r.json();
           this.list = d.data?.list || [];
           this.counts.pending = d.data?.total || 0;
+        } else if (r.status === 401) {
+          localStorage.removeItem('admin_token');
         }
       } catch {}
+    },
+
+    api(path, opts = {}) {
+      return fetch(path, {
+        ...opts,
+        credentials: 'include',
+        headers: { ...(opts.headers || {}), ...this.authHeaders() }
+      });
     },
 
     // 登录
     async login() {
       this.loginError = ''; this.loggingIn = true;
       try {
-        const resp = await fetch('/api/admin/login', {
-          method: 'POST', credentials: 'include',
+        const resp = await this.api('/api/admin/login', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: this.loginForm.user, password: this.loginForm.pass })
         });
         const data = await resp.json();
         if (!resp.ok || data.error) { this.loginError = data.error || '登录失败'; this.loggingIn = false; return; }
+        localStorage.setItem('admin_token', data.data.token);
         this.loggedIn = true; this.user = this.loginForm.user;
         this.mustChangePwd = !!data.data?.mustChangePassword;
         this.loggingIn = false;
@@ -354,11 +374,12 @@ function admin() {
     },
 
     async logout() {
-      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+      await this.api('/api/admin/logout', { method: 'POST' });
+      localStorage.removeItem('admin_token');
       this.loggedIn = false; this.sidebarOpen = false;
     },
 
-    // 切换 tab（自动加载数据 + 手机端收起侧边栏）
+    // 切换 tab
     switchTab(t) {
       this.tab = t;
       if (window.innerWidth < 1024) this.sidebarOpen = false;
@@ -368,10 +389,9 @@ function admin() {
     },
 
     async loadCounts() {
-      const s = ['pending', 'approved', 'rejected'];
-      for (const st of s) {
+      for (const st of ['pending', 'approved', 'rejected']) {
         try {
-          const r = await fetch(`/api/admin/list?status=${st}`, { credentials: 'include' });
+          const r = await this.api(`/api/admin/list?status=${st}`);
           if (r.ok) { const d = await r.json(); this.counts[st] = d.data?.total || 0; }
           else if (r.status === 401) { this.loggedIn = false; return; }
         } catch {}
@@ -381,7 +401,7 @@ function admin() {
     async loadList(status) {
       this.loading = true;
       try {
-        const r = await fetch(`/api/admin/list?status=${status}`, { credentials: 'include' });
+        const r = await this.api(`/api/admin/list?status=${status}`);
         if (r.status === 401) { this.loggedIn = false; return; }
         const d = await r.json();
         this.list = d.data?.list || [];
@@ -391,8 +411,8 @@ function admin() {
     async review(id, action) {
       if (action === 'delete' && !confirm('确定删除？')) return;
       try {
-        const r = await fetch('/api/admin/review', {
-          method: 'POST', credentials: 'include',
+        const r = await this.api('/api/admin/review', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, id })
         });
@@ -404,8 +424,8 @@ function admin() {
     async reviewReject(id) {
       const reason = prompt('拒绝理由（可选）：') || '';
       try {
-        const r = await fetch('/api/admin/review', {
-          method: 'POST', credentials: 'include',
+        const r = await this.api('/api/admin/review', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'reject', id, reason })
         });
@@ -416,7 +436,7 @@ function admin() {
 
     async loadRssStatus() {
       try {
-        const r = await fetch('/api/admin/rss-status', { credentials: 'include' });
+        const r = await this.api('/api/admin/rss-status');
         if (r.ok) this.rssStatus = (await r.json()).data || this.rssStatus;
       } catch {}
     },
@@ -424,7 +444,7 @@ function admin() {
     async refreshRss() {
       this.refreshing = true;
       try {
-        const r = await fetch('/api/admin/refresh-rss', { method: 'POST', credentials: 'include' });
+        const r = await this.api('/api/admin/refresh-rss', { method: 'POST' });
         const d = await r.json();
         alert(r.ok ? '✅ 更新成功\n游标：' + d.data?.result?.cursor + '，文章：' + d.data?.result?.articleCount : '❌ ' + d.error);
         await this.loadRssStatus();
@@ -433,7 +453,7 @@ function admin() {
 
     async loadConfig() {
       try {
-        const r = await fetch('/api/admin/config', { credentials: 'include' });
+        const r = await this.api('/api/admin/config');
         if (r.ok) {
           const d = await r.json();
           if (d.data?.email) this.emailCfg = { ...this.emailCfg, ...d.data.email };
@@ -445,8 +465,8 @@ function admin() {
     async saveEmail() {
       this.saving = true; this.emailMsg = ''; this.emailOk = false;
       try {
-        const r = await fetch('/api/admin/config', {
-          method: 'POST', credentials: 'include',
+        const r = await this.api('/api/admin/config', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'email', data: this.emailCfg })
         });
@@ -459,7 +479,7 @@ function admin() {
     async testEmail() {
       this.testing = true; this.emailMsg = ''; this.emailOk = false;
       try {
-        const r = await fetch('/api/admin/test-email', { method: 'POST', credentials: 'include' });
+        const r = await this.api('/api/admin/test-email', { method: 'POST' });
         const d = await r.json();
         if (r.ok) { this.emailOk = true; this.emailMsg = '✅ ' + (d.data?.message || '已发送'); }
         else { this.emailMsg = '❌ ' + (d.error || '失败'); }
@@ -469,8 +489,8 @@ function admin() {
     async saveTuCang() {
       this.saving = true; this.tuCangMsg = ''; this.tuCangOk = false;
       try {
-        const r = await fetch('/api/admin/config', {
-          method: 'POST', credentials: 'include',
+        const r = await this.api('/api/admin/config', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'tucang', data: this.tuCangCfg })
         });
@@ -484,8 +504,8 @@ function admin() {
       if (this.pwdForm.new !== this.pwdForm.cfm) { this.pwdOk = false; this.pwdMsg = '两次密码不一致'; return; }
       this.saving = true; this.pwdMsg = ''; this.pwdOk = false;
       try {
-        const r = await fetch('/api/admin/change-password', {
-          method: 'POST', credentials: 'include',
+        const r = await this.api('/api/admin/change-password', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ oldPassword: this.pwdForm.old, newPassword: this.pwdForm.new })
         });
