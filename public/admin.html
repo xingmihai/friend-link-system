@@ -318,6 +318,20 @@ function admin() {
       window.addEventListener('resize', () => {
         this.sidebarOpen = window.innerWidth >= 1024;
       });
+      // 检查 session cookie 是否还在（刷新后自动恢复登录态）
+      this.checkAuth();
+    },
+
+    async checkAuth() {
+      try {
+        const r = await fetch('/api/admin/list?status=pending', { credentials: 'include' });
+        if (r.ok) {
+          this.loggedIn = true;
+          const d = await r.json();
+          this.list = d.data?.list || [];
+          this.counts.pending = d.data?.total || 0;
+        }
+      } catch {}
     },
 
     // 登录
