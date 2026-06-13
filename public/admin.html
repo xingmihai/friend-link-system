@@ -163,6 +163,10 @@
                       class="btn bg-orange-500 text-white px-4 py-2 rounded-lg text-sm">拒绝</button>
                     <button @click="openEdit(item)"
                       class="btn bg-blue-500 text-white px-3 py-2 rounded-lg text-sm">编辑</button>
+                    <button @click="review(item.id, item.pinned?'unpin':'pin')"
+                      class="btn text-white px-3 py-2 rounded-lg text-sm"
+                      :class="item.pinned?'bg-yellow-500':'bg-indigo-500'"
+                      x-text="item.pinned?'📌 已置顶':'置顶'"></button>
                     <button @click="review(item.id,'delete')"
                       class="btn bg-gray-500 text-white px-3 py-2 rounded-lg text-sm">删除</button>
                   </div>

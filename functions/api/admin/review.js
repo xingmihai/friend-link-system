@@ -88,6 +88,21 @@ export async function onRequestPost({ request, env }) {
     return err('记录不存在');
   }
 
+  if (action === 'pin' || action === 'unpin') {
+    for (const status of ['pending', 'approved', 'rejected']) {
+      const list = await getList(env, `link:list:${status}`);
+      if (list.includes(id)) {
+        const raw = await env.LINKS.get(`link:${status}:${id}`);
+        if (!raw) return err('记录不存在');
+        const record = JSON.parse(raw);
+        record.pinned = action === 'pin';
+        await env.LINKS.put(`link:${status}:${id}`, JSON.stringify(record));
+        return ok({ message: action === 'pin' ? '已置顶' : '已取消置顶', record });
+      }
+    }
+    return err('记录不存在');
+  }
+
   return err('未知 action');
 }
 

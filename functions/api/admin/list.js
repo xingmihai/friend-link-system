@@ -16,8 +16,12 @@ export async function onRequestGet({ request, env }) {
     const r = JSON.parse(await env.LINKS.get(`link:${status}:${id}`) || 'null');
     if (r) out.push(r);
   }
-  // 倒序（新申请在前）
-  out.reverse();
+  // 置顶排最前，然后按创建时间倒序
+  out.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
   return ok({ list: out, total: out.length });
 }
 

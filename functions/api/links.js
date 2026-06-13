@@ -4,17 +4,21 @@ import { getList } from './_utils.js';
 
 export async function onRequestGet({ env }) {
   const ids = await getList(env, 'link:list:approved');
-  const out = [];
+  const items = [];
   for (const id of ids) {
     const r = JSON.parse(await env.LINKS.get(`link:approved:${id}`) || 'null');
     if (!r) continue;
-    out.push({
-      name: r.title,
-      link: r.link,
-      avatar: r.avatar,
-      descr: r.descr
-    });
+    items.push(r);
   }
+  // 置顶排最前
+  items.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return 0;
+  });
+  const out = items.map(r => ({
+    name: r.title, link: r.link, avatar: r.avatar, descr: r.descr
+  }));
   return new Response(JSON.stringify(out, null, 2), {
     status: 200,
     headers: {
