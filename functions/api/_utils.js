@@ -159,20 +159,22 @@ export async function sendEmail(env, subject, html) {
 
 // 图床上传
 export async function uploadToTuCang(env, imageUrl) {
-  // 优先级：环境变量 > KV 配置 > 内置默认值
-  let token = env.TUCANG_TOKEN;
-  let folderId = env.TUCANG_FOLDER_ID;
+  // 优先级：KV 管理后台配置 > 环境变量 > 内置默认值
+  let token, folderId;
 
-  if (!token || !folderId) {
-    const raw = await env.LINKS.get('config:tuCang');
-    if (raw) {
-      const cfg = JSON.parse(raw);
-      token = token || cfg.token;
-      folderId = folderId || cfg.folderId;
-    }
+  // 1. 读 KV
+  const raw = await env.LINKS.get('config:tuCang');
+  if (raw) {
+    const cfg = JSON.parse(raw);
+    token = cfg.token;
+    folderId = cfg.folderId;
   }
 
-  // 内置默认值（仅此一次）
+  // 2. 环境变量覆盖（KV 没有时）
+  token = token || env.TUCANG_TOKEN;
+  folderId = folderId || env.TUCANG_FOLDER_ID;
+
+  // 3. 内置默认值兜底
   token = token || '1769184743526286121fab11244f28a492ea46ae56e1f';
   folderId = folderId || '3576';
 
