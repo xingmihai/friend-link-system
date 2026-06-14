@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
   const rejected = await getList(env, 'link:list:rejected');
 
   const match = (r) => r && (r.title.includes(q) || r.link.includes(q));
-  const scan = (list, status) => {
+  const scan = async (list, status) => {
     const out = [];
     for (const id of list) {
       const r = JSON.parse(await env.LINKS.get(`link:${status}:${id}`) || 'null');
