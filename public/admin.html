@@ -227,58 +227,43 @@
                   <option value="smtp">直接 SMTP（QQ 邮箱等）</option>
                 </select>
               </div>
-              <p x-show="emailCfg.provider==='resend'" class="text-xs text-gray-400 -mt-2">注册 <a href="https://resend.com" target="_blank" class="text-blue-600">resend.com</a> → 验证域名 → 获取 API Key</p>
-              <p x-show="emailCfg.provider==='sendgrid'" class="text-xs text-gray-400 -mt-2">注册 <a href="https://sendgrid.com" target="_blank" class="text-blue-600">sendgrid.com</a> → Settings → API Keys → Create Key</p>
-              <p x-show="emailCfg.provider==='smtp'" class="text-xs text-gray-400 -mt-2">📌 QQ 邮箱需开启 SMTP 服务并生成授权码：QQ 邮箱 → 设置 → 账号 → POP3/SMTP 服务 → 开启 → 生成授权码</p>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1 font-medium">Resend API Key <span class="text-red-500">*</span></label>
-                <input x-model="emailCfg.apiKey" type="password" required class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
-                  placeholder="re_xxxxx（留空保持原值）">
-              </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1 font-medium">发件邮箱 <span class="text-red-500">*</span></label>
-                <input x-model="emailCfg.from" type="email" required class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
-                  placeholder="noreply@你的域名.com（须在Resend验证过）">
-              </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1 font-medium">发件人名称</label>
-                <input x-model="emailCfg.fromName" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" :placeholder="emailCfg.provider==='smtp'?'友链系统':'友链系统'">
-              </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1 font-medium">收件邮箱 <span class="text-red-500">*</span></label>
-                <input x-model="emailCfg.to" type="email" required class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
-                  placeholder="admin@qq.com（接收通知的邮箱）">
+              <p x-show="emailCfg.provider==='resend'" class="text-xs text-gray-400 -mt-2"><p x-show="emailCfg.provider==='resend'" class="text-xs text-gray-400 -mt-2">注册 <a href="https://resend.com" target="_blank" class="text-blue-600">resend.com</a> → 验证域名 → 获取 API Key</p>
+              <p x-show="emailCfg.provider==='sendgrid'" class="text-xs text-gray-400 -mt-2"><p x-show="emailCfg.provider==='sendgrid'" class="text-xs text-gray-400 -mt-2">注册 <a href="https://sendgrid.com" target="_blank" class="text-blue-600">sendgrid.com</a> → Settings → API Keys → Create Key</p>
+              <p x-show="emailCfg.provider==='smtp'" class="text-xs text-gray-400 -mt-2">📌 <p x-show="emailCfg.provider==='smtp'" class="text-xs text-gray-400 -mt-2">📌 QQ 邮箱需开启 SMTP：设置 → 账号 → POP3/SMTP 服务 → 开启 → 生成授权码</p>
+
+              <!-- Resend / SendGrid 字段 -->
+              <div x-show="emailCfg.provider!=='smtp'" x-transition class="space-y-3">
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">API Key <span class="text-red-500">*</span></label>
+                  <input x-model="emailCfg.apiKey" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
+                    :placeholder="emailCfg.provider==='resend'?'re_xxxxx':'SG.xxxxx'"></div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">发件邮箱 <span class="text-red-500">*</span></label>
+                  <input x-model="emailCfg.from" type="email" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
+                    :placeholder="emailCfg.provider==='resend'?'noreply@你的域名.com':'需在SendGrid验证的邮箱'"></div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">发件人名称</label>
+                  <input x-model="emailCfg.fromName" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="友链系统"></div>
               </div>
 
-              <!-- SMTP 专属配置 -->
-              <div x-show="emailCfg.provider==='smtp'" x-transition class="space-y-3 border-t border-gray-100 pt-3 mt-3">
-                <p class="text-sm font-medium text-gray-700">SMTP 服务器配置</p>
+              <!-- SMTP 字段 -->
+              <div x-show="emailCfg.provider==='smtp'" x-transition class="space-y-3">
                 <div class="flex gap-2">
-                  <div class="flex-1">
-                    <label class="block text-xs text-gray-500 mb-1">服务器地址</label>
-                    <input x-model="smtpCfg.host" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="smtp.qq.com">
-                  </div>
-                  <div class="w-24">
-                    <label class="block text-xs text-gray-500 mb-1">端口</label>
-                    <input x-model="smtpCfg.port" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="465">
-                  </div>
+                  <div class="flex-1"><label class="block text-sm text-gray-700 mb-1 font-medium">服务器</label>
+                    <input x-model="smtpCfg.host" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="smtp.qq.com"></div>
+                  <div class="w-24"><label class="block text-sm text-gray-700 mb-1 font-medium">端口</label>
+                    <input x-model="smtpCfg.port" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="465"></div>
                 </div>
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1">SMTP 账号（通常为邮箱地址）</label>
-                  <input x-model="smtpCfg.user" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="xxx@qq.com">
-                </div>
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1">SMTP 密码 / 授权码</label>
-                  <input x-model="smtpCfg.password" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="邮箱授权码（留空保持原值）">
-                </div>
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1">发件邮箱</label>
-                  <input x-model="smtpCfg.from" type="email" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="xxx@qq.com">
-                </div>
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1">发件人名称</label>
-                  <input x-model="smtpCfg.fromName" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="友链系统">
-                </div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">SMTP 账号（QQ 邮箱）</label>
+                  <input x-model="smtpCfg.user" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="xxx@qq.com"></div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">SMTP 授权码</label>
+                  <input x-model="smtpCfg.password" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="授权码（留空保持原值）"></div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">发件邮箱</label>
+                  <input x-model="smtpCfg.from" type="email" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="xxx@qq.com"></div>
+                <div><label class="block text-sm text-gray-700 mb-1 font-medium">发件人名称</label>
+                  <input x-model="smtpCfg.fromName" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="友链系统"></div>
+              </div>
+
+              <!-- 收件邮箱 -->
+              <div><label class="block text-sm text-gray-700 mb-1 font-medium">收件邮箱 <span class="text-red-500">*</span></label>
+                <input x-model="emailCfg.to" type="email" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="admin@qq.com">
               </div>
               <div class="flex flex-col sm:flex-row gap-2 pt-2">
                 <button type="submit" :disabled="saving" class="btn bg-blue-500 text-white px-5 py-2 rounded-lg">保存</button>
@@ -412,6 +397,14 @@ function admin() {
     smtpCfg: { host: 'smtp.qq.com', port: 465, user: '', password: '', from: '', fromName: '' },
     tuCangCfg: { token: '', folderId: '' },
     aiCfg: { apiKey: '' }, aiMsg: '', aiOk: false,
+
+    onProviderChange() {
+      // 切到 SMTP 时清空 API Key 和发件邮箱（属于 Resend/SendGrid 的字段）
+      if (this.emailCfg.provider === 'smtp') {
+        this.emailCfg.apiKey = '******';
+        this.emailCfg.from = '';
+      }
+    },
     saving: false, testing: false, emailMsg: '', emailOk: false, tuCangMsg: '', tuCangOk: false,
     pwdForm: { old: '', new: '', cfm: '' }, pwdMsg: '', pwdOk: false,
     editModal: false, editForm: { id: '', title: '', avatar: '', link: '', descr: '', rss: '' },
