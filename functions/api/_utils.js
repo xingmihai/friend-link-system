@@ -1,5 +1,3 @@
-import { connect } from 'cloudflare:sockets';
-
 // functions/api/_utils.js
 // 通用工具：响应包装、KV 操作、密码哈希、Cookie 解析
 
@@ -258,7 +256,8 @@ async function sendViaSendgrid(cfg, subject, html, to) {
 
 // SMTP 直发（通过 QQ 邮箱等，使用 connect() API）
 async function sendViaSmtp(cfg, subject, html, to) {
-  const sock = await connect({ hostname: cfg.host, port: cfg.port || 465 }, { secureTransport: 'on' });
+  const { connect } = await import('cloudflare:sockets');
+  const sock = connect({ hostname: cfg.host, port: cfg.port || 465 }, { secureTransport: 'on' });
   const reader = sock.readable.getReader();
   const writer = sock.writable.getWriter();
   const enc = new TextEncoder();
