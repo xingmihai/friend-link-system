@@ -43,6 +43,10 @@ export async function onRequestPost({ request, env }) {
         </table>`;
       await queueEmail(env, `🎉 友链已通过！${record.title}`,
         buildEmailHtml('✅ 审核通过', content, '查看详情', `${origin}/cheak`), record.email);
+      // 立即触发发送
+      const tUrl = new URL('/api/cron/send-pending', request.url);
+      tUrl.searchParams.set('secret', env.CRON_SECRET);
+      fetch(tUrl).catch(() => {});
     }
 
     return ok({ message: '已通过', record });
@@ -76,6 +80,10 @@ export async function onRequestPost({ request, env }) {
         <p style="margin:0;color:#9ca3af;font-size:13px">如果仍有疑问，可以重新提交申请</p>`;
       await queueEmail(env, `😅 友链未通过 - ${record.title}`,
         buildEmailHtml('❌ 未通过审核', content, '查看详情', `${origin}/cheak`), record.email);
+      // 立即触发发送
+      const tUrl = new URL('/api/cron/send-pending', request.url);
+      tUrl.searchParams.set('secret', env.CRON_SECRET);
+      fetch(tUrl).catch(() => {});
     }
 
     return ok({ message: '已拒绝' });
@@ -188,6 +196,10 @@ export async function onRequestPost({ request, env }) {
             await queueEmail(env, `😅 友链未通过 - ${record.title}`,
               buildEmailHtml('❌ 未通过审核', content, '查看详情', `${origin}/cheak`), record.email);
           }
+          // 立即触发发送
+          const tUrl = new URL('/api/cron/send-pending', request.url);
+          tUrl.searchParams.set('secret', env.CRON_SECRET);
+          fetch(tUrl).catch(() => {});
         }
 
         return ok({ message: '状态已变更', record });
