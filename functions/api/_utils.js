@@ -178,8 +178,8 @@ export async function uploadToTuCang(env, imageUrl) {
   folderId = folderId || env.TUCANG_FOLDER_ID;
 
   // 3. 内置默认值兜底
-  token = token || '1769184743526286121fab11244f28a492ea46ae56e1f';
-  folderId = folderId || '3576';
+  token = token || '000000000000000000000000000000000000000000000';
+  folderId = folderId || '0000';
 
   try {
     const form = new FormData();
