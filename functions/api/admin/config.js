@@ -38,8 +38,7 @@ export async function onRequestPost({ request, env }) {
       apiKey: data.apiKey.trim(),
       from: data.from.trim(),
       fromName: (data.fromName || '').trim(),
-      to: data.to.trim(),
-      qqSmtpFrom: (data.qqSmtpFrom || '').trim()
+      to: data.to.trim()
     }));
     return ok({ message: '邮件配置已保存' });
   }
