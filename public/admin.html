@@ -117,6 +117,10 @@
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5">
             🖼️ 图床配置
           </button>
+          <button @click="switchTab('ai')" :class="sidebarClass('ai')"
+            class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5">
+            🤖 AI 配置
+          </button>
           <button @click="switchTab('password')" :class="sidebarClass('password')"
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5">
             🔑 修改密码
@@ -266,6 +270,25 @@
           </div>
         </div>
 
+        <!-- === AI 配置 === -->
+        <div x-show="tab==='ai'">
+          <h2 class="text-2xl font-bold text-white mb-4">🤖 DeepSeek AI 配置</h2>
+          <div class="card rounded-xl p-6 shadow max-w-md">
+            <p class="text-sm text-gray-600 mb-4">用于申请页"一键导入"的 AI 兜底解析。注册 <a href="https://platform.deepseek.com" target="_blank" class="text-blue-600 underline">DeepSeek</a> → API Keys → 创建 Key。</p>
+            <form @submit.prevent="saveAi" class="space-y-3">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1 font-medium">DeepSeek API Key</label>
+                <input x-model="aiCfg.apiKey" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
+                  placeholder="sk-xxxxx（留空保持原值）">
+              </div>
+              <button type="submit" :disabled="saving" class="btn bg-blue-500 text-white px-5 py-2 rounded-lg">保存</button>
+              <div x-show="aiMsg" class="text-sm px-3 py-2 rounded-lg"
+                :class="aiOk?'bg-green-50 text-green-700':'bg-red-50 text-red-700'" x-text="aiMsg"></div>
+            </form>
+            <p class="text-xs text-gray-400 mt-4">💡 不配也能用——申请页的 YAML 格式粘贴导入走纯前端解析，不需要 AI。AI 只在粘贴非标准格式时兜底。</p>
+          </div>
+        </div>
+
         <!-- === 修改密码 === -->
         <div x-show="tab==='password'">
           <h2 class="text-2xl font-bold text-white mb-4">🔑 修改密码</h2>
@@ -342,6 +365,7 @@ function admin() {
     // 配置
     emailCfg: { apiKey: '', from: '', fromName: '', to: '' },
     tuCangCfg: { token: '', folderId: '' },
+    aiCfg: { apiKey: '' }, aiMsg: '', aiOk: false,
     saving: false, testing: false, emailMsg: '', emailOk: false, tuCangMsg: '', tuCangOk: false,
     pwdForm: { old: '', new: '', cfm: '' }, pwdMsg: '', pwdOk: false,
     editModal: false, editForm: { id: '', title: '', avatar: '', link: '', descr: '', rss: '' },
@@ -351,7 +375,7 @@ function admin() {
       return { pending: '📋 待审核', approved: '✅ 已通过', rejected: '❌ 已拒绝' }[this.tab] || '';
     },
     get tabTitleShort() {
-      return { pending: '待审核', approved: '已通过', rejected: '已拒绝', rss: 'RSS', email: '邮件', tucang: '图床', password: '密码' }[this.tab] || '';
+      return { pending: '待审核', approved: '已通过', rejected: '已拒绝', rss: 'RSS', email: '邮件', tucang: '图床', ai: 'AI', password: '密码' }[this.tab] || '';
     },
 
     sidebarClass(t) { return t === this.tab ? 'sidebar-link active' : 'sidebar-link text-white/80 hover:bg-white/5'; },
@@ -427,7 +451,7 @@ function admin() {
       if (window.innerWidth < 1024) this.sidebarOpen = false;
       if (['pending', 'approved', 'rejected'].includes(t)) this.loadList(t);
       else if (t === 'rss') this.loadRssStatus();
-      else if (t === 'email' || t === 'tucang') this.loadConfig();
+      else if (t === 'email' || t === 'tucang' || t === 'ai') this.loadConfig();
     },
 
     async loadCounts() {
@@ -538,6 +562,7 @@ function admin() {
           const d = await r.json();
           if (d.data?.email) this.emailCfg = { ...this.emailCfg, ...d.data.email };
           if (d.data?.tuCang) this.tuCangCfg = { ...this.tuCangCfg, ...d.data.tuCang };
+          if (d.data?.ai) this.aiCfg = { ...this.aiCfg, ...d.data.ai };
         }
       } catch {}
     },
@@ -578,6 +603,20 @@ function admin() {
         if (r.ok) { this.tuCangOk = true; this.tuCangMsg = '✅ ' + d.data?.message; }
         else { this.tuCangMsg = '❌ ' + d.error; }
       } catch (e) { this.tuCangMsg = '❌ ' + e.message; } finally { this.saving = false; }
+    },
+
+    async saveAi() {
+      this.saving = true; this.aiMsg = ''; this.aiOk = false;
+      try {
+        const r = await this.api('/api/admin/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'ai', data: this.aiCfg })
+        });
+        const d = await r.json();
+        if (r.ok) { this.aiOk = true; this.aiMsg = '✅ ' + d.data?.message; }
+        else { this.aiMsg = '❌ ' + d.error; }
+      } catch (e) { this.aiMsg = '❌ ' + e.message; } finally { this.saving = false; }
     },
 
     async changePwd() {

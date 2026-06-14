@@ -59,6 +59,40 @@
 
   <!-- Main Card -->
   <div class="glass rounded-2xl shadow-2xl p-6 md:p-8 mb-6">
+
+    <!-- 一键导入区 -->
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border border-indigo-100">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold text-indigo-800 text-sm flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          一键导入 ✨
+        </h3>
+        <button type="button" @click="showImport=!showImport" class="text-xs text-indigo-500 hover:text-indigo-700">
+          <span x-text="showImport?'收起':'展开'"></span>
+        </button>
+      </div>
+      <div x-show="showImport" x-transition class="space-y-2">
+        <p class="text-xs text-gray-500">粘贴对方发来的友链数据，自动解析填入表单。支持 YAML / JSON 格式。</p>
+        <textarea x-model="importText" rows="5"
+          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none"
+          placeholder="name: 笑的博客
+link: https://www.xiaow.qzz.io
+avatar: https://wp-cdn.4ce.cn/v2/TVFIv5x.jpeg
+descr: 随性收拢生活散落的笑意
+rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
+        <div class="flex gap-2">
+          <button type="button" @click="doParse" :disabled="parsing" class="bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition">
+            <span x-show="!parsing">📝 解析填入</span><span x-show="parsing">解析中…</span>
+          </button>
+          <button type="button" @click="doAiParse" :disabled="parsing" class="bg-purple-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-600 transition">
+            <span x-show="!parsing">🤖 AI 解析</span><span x-show="parsing">AI 解析中…</span>
+          </button>
+        </div>
+        <div x-show="importMsg" class="text-xs px-3 py-1.5 rounded-lg"
+          :class="importOk?'bg-green-50 text-green-700':'bg-red-50 text-red-700'" x-text="importMsg"></div>
+      </div>
+    </div>
+
     <form @submit.prevent="submit">
       <div class="space-y-5">
         <!-- 网站标题 -->
@@ -205,10 +239,87 @@
 function app() {
   return {
     form: { title: '', avatar: '', link: '', descr: '', rss: '', agreed: false },
-    loading: false,
-    success: false,
-    error: '',
+    loading: false, success: false, error: '',
+    showImport: false, importText: '', parsing: false, importMsg: '', importOk: false,
+
     init() {},
+
+    doParse() {
+      const text = this.importText.trim();
+      if (!text) { this.importMsg = '请粘贴数据'; this.importOk = false; return; }
+      this.parsing = true; this.importMsg = ''; this.importOk = false;
+
+      try {
+        // 尝试 JSON
+        let data = null;
+        if (text.startsWith('{')) {
+          data = JSON.parse(text);
+        } else {
+          // YAML 解析: key:value 按行
+          data = {};
+          text.split('\n').forEach(line => {
+            const m = line.match(/^\s*([\w]+)\s*[:：]\s*(.+)/);
+            if (m) data[m[1]] = m[2].trim();
+          });
+        }
+
+        // 字段映射
+        const title = data.name || data.title || '';
+        const avatar = data.avatar || data.image || data.img || '';
+        const link = data.link || data.url || '';
+        const descr = data.descr || data.description || data.desc || data.bio || '';
+        const rss = data.rss || data.feed || '';
+
+        if (!title || !link) {
+          this.importMsg = '未提取到标题或链接，换种格式试试';
+          this.importOk = false;
+        } else {
+          this.form.title = title.substring(0, 50);
+          this.form.avatar = avatar;
+          this.form.link = link;
+          this.form.descr = descr.substring(0, 200);
+          this.form.rss = rss;
+          this.importMsg = '✅ 已填入表单，确认后点提交';
+          this.importOk = true;
+        }
+      } catch {
+        this.importMsg = '解析失败，换种格式试试';
+        this.importOk = false;
+      } finally {
+        this.parsing = false;
+      }
+    },
+
+    async doAiParse() {
+      const text = this.importText.trim();
+      if (!text) { this.importMsg = '请粘贴数据'; this.importOk = false; return; }
+      this.parsing = true; this.importMsg = ''; this.importOk = false;
+      try {
+        const r = await fetch('/api/admin/ai-convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const d = await r.json();
+        if (r.ok && d.data) {
+          this.form.title = d.data.title;
+          this.form.avatar = d.data.avatar;
+          this.form.link = d.data.link;
+          this.form.descr = d.data.descr;
+          this.form.rss = d.data.rss;
+          this.importMsg = '✅ AI 已解析，确认后点提交';
+          this.importOk = true;
+        } else {
+          this.importMsg = d.error || 'AI 解析失败';
+          this.importOk = false;
+        }
+      } catch (e) {
+        this.importMsg = '网络错误：' + e.message;
+        this.importOk = false;
+      } finally {
+        this.parsing = false;
+      }
+    },
     async submit() {
       this.error = '';
       this.loading = true;
@@ -232,6 +343,7 @@ function app() {
     },
     reset() {
       this.form = { title: '', avatar: '', link: '', descr: '', rss: '', agreed: false };
+      this.importText = ''; this.importMsg = ''; this.importOk = false;
     }
   };
 }
