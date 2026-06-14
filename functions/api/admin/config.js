@@ -8,15 +8,18 @@ export async function onRequestGet({ request, env }) {
   const email = JSON.parse(await env.LINKS.get('config:email') || 'null');
   const tuCang = JSON.parse(await env.LINKS.get('config:tuCang') || 'null');
   const ai = JSON.parse(await env.LINKS.get('config:ai') || 'null');
+  const smtp = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
   const safe = (obj) => obj ? {
     ...obj,
     apiKey: obj.apiKey ? '******' : '',
-    token: obj.token ? '******' : ''
+    token: obj.token ? '******' : '',
+    password: obj.password ? '******' : ''
   } : null;
   return ok({
     email: safe(email),
     tuCang: safe(tuCang),
-    ai: safe(ai)
+    ai: safe(ai),
+    smtp: safe(smtp)
   });
 }
 
@@ -52,6 +55,24 @@ export async function onRequestPost({ request, env }) {
     if (!data.token || !data.folderId) return err('token 和 folderId 必填');
     await env.LINKS.put('config:tuCang', JSON.stringify(data));
     return ok({ message: '图床配置已保存' });
+  }
+
+  if (type === 'smtp') {
+    if (data.password === '******') {
+      const old = JSON.parse(await env.LINKS.get('config:smtp') || '{}');
+      data.password = old.password || '';
+    }
+    if (!data.host || !data.port || !data.user || !data.password || !data.from || !data.to) return err('host、port、user、password、from、to 必填');
+    await env.LINKS.put('config:smtp', JSON.stringify({
+      host: data.host.trim(),
+      port: parseInt(data.port) || 465,
+      user: data.user.trim(),
+      password: data.password.trim(),
+      from: data.from.trim(),
+      fromName: (data.fromName || '').trim(),
+      to: data.to.trim()
+    }));
+    return ok({ message: 'SMTP 配置已保存' });
   }
 
   if (type === 'ai') {
