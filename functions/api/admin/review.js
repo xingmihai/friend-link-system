@@ -139,41 +139,44 @@ export async function onRequestPost({ request, env, ctx }) {
     const { id, newStatus, reason, notify } = body;
     if (!newStatus || !['pending', 'approved', 'rejected'].includes(newStatus)) return err('无效状态');
 
-    for (const status of ['pending', 'approved', 'rejected']) {
-      const list = await getList(env, `link:list:${status}`);
-      if (list.includes(id)) {
-        const raw = await env.LINKS.get(`link:${status}:${id}`);
-        if (!raw) return err('记录不存在');
-        const record = JSON.parse(raw);
+    try {
+      for (const status of ['pending', 'approved', 'rejected']) {
+        const list = await getList(env, `link:list:${status}`);
+        if (list.includes(id)) {
+          const raw = await env.LINKS.get(`link:${status}:${id}`);
+          if (!raw) return err('记录不存在');
+          const record = JSON.parse(raw);
 
-        // 从原状态列表删除
-        await setList(env, `link:list:${status}`, list.filter(x => x !== id));
-        await env.LINKS.delete(`link:${status}:${id}`);
+          // 从原状态列表删除
+          await setList(env, `link:list:${status}`, list.filter(x => x !== id));
+          await env.LINKS.delete(`link:${status}:${id}`);
 
-        // 更新记录字段
-        if (newStatus === 'approved') {
-          record.approvedAt = new Date().toISOString();
-          delete record.rejectedAt;
-          delete record.rejectReason;
-        } else if (newStatus === 'rejected') {
-          record.rejectedAt = new Date().toISOString();
-          record.rejectReason = reason || '';
-          delete record.approvedAt;
-        } else {
-          // pending: 清空审核相关字段
-          delete record.approvedAt;
-          delete record.rejectedAt;
-          delete record.rejectReason;
-        }
+          // 更新记录字段
+          if (newStatus === 'approved') {
+            record.approvedAt = new Date().toISOString();
+            delete record.rejectedAt;
+            delete record.rejectReason;
+            // 重新上传头像到图床
+            const up = await uploadToTuCang(env, record.avatar);
+            if (up.ok) record.avatar = up.url;
+          } else if (newStatus === 'rejected') {
+            record.rejectedAt = new Date().toISOString();
+            record.rejectReason = reason || '';
+            delete record.approvedAt;
+          } else {
+            delete record.approvedAt;
+            delete record.rejectedAt;
+            delete record.rejectReason;
+          }
 
-        // 加到新状态列表
-        const newList = await getList(env, `link:list:${newStatus}`);
-        await env.LINKS.put(`link:${newStatus}:${id}`, JSON.stringify(record));
-        newList.push(id);
-        await setList(env, `link:list:${newStatus}`, newList);
+          // 加到新状态列表
+          const newList = await getList(env, `link:list:${newStatus}`);
+          await env.LINKS.put(`link:${newStatus}:${id}`, JSON.stringify(record));
+          newList.push(id);
+          await setList(env, `link:list:${newStatus}`, newList);
 
-        // 发通知（后台发送）
-        if (notify && record.email) {
+          // 发通知（后台发送）
+          if (notify && record.email) {
           const origin = new URL(request.url).origin;
           if (newStatus === 'approved') {
             const content = `<p style="margin:0 0 16px">🎉 <b>${escapeHtml(record.title)}</b>，恭喜！</p><p style="margin:0 0 16px;color:#6b7280">您的友链申请已通过审核！</p><table width="100%" style="background:#f0fdf4;border-radius:8px;padding:12px 16px;font-size:13px;color:#374151"><tr><td>✅ 状态：已通过</td></tr><tr><td>📅 时间：${new Date().toISOString().slice(0, 10)}</td></tr></table>`;
@@ -195,6 +198,10 @@ export async function onRequestPost({ request, env, ctx }) {
       }
     }
     return err('记录不存在');
+  } catch (e) {
+    console.error('changeStatus 错误:', e.message);
+    return err('状态变更失败: ' + e.message);
+  }
   }
 
   return err('未知 action');
