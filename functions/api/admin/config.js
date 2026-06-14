@@ -72,7 +72,8 @@ export async function onRequestPost({ request, env }) {
       password: data.password.trim(),
       from: data.from.trim(),
       fromName: (data.fromName || '').trim(),
-      to: data.to.trim()
+      to: data.to.trim(),
+      asyncSmtp: !!data.asyncSmtp
     }));
     return ok({ message: 'SMTP 配置已保存' });
   }

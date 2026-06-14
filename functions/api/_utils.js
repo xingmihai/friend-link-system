@@ -201,6 +201,18 @@ export function escapeHtml(s) {
 export async function queueEmail(env, subject, html, to) {
   const raw = await env.LINKS.get('config:email');
   if (!raw) return; // 未配邮件则跳过
+  const cfg = JSON.parse(raw);
+  if (!cfg.to && !to) return; // 没收件人就不发
+
+  // SMTP + 非异步：直接同步发送（简单稳定）
+  if (cfg.provider === 'smtp') {
+    const smtpCfg = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
+    if (smtpCfg && smtpCfg.asyncSmtp !== true) {
+      return sendEmail(env, subject, html, to || cfg.to).catch(e => console.error('SMTP直发失败:', e.message));
+    }
+  }
+
+  // 异步入队
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
   await env.LINKS.put(key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
 }
