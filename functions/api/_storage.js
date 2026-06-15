@@ -126,8 +126,14 @@ const D1Storage = {
         avatar TEXT NOT NULL,
         descr TEXT NOT NULL,
         rss TEXT,
+        email TEXT,
+        pinned INTEGER DEFAULT 0,
         top INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
+        approved_at INTEGER,
+        rejected_at INTEGER,
+        reject_reason TEXT,
+        updated_at INTEGER,
         reviewed_at INTEGER
       )
     `).run();
@@ -224,7 +230,24 @@ const D1Storage = {
     const results = await env.D1.prepare(`
       SELECT * FROM links WHERE type = ? ORDER BY top DESC, created_at DESC
     `).bind(type).all();
-    return results.results;
+    // 字段映射：SQL下划线命名 -> JS驼峰命名
+    return results.results.map(item => ({
+      id: item.id,
+      title: item.title,
+      link: item.link,
+      avatar: item.avatar,
+      descr: item.descr,
+      rss: item.rss,
+      email: item.email,
+      pinned: item.pinned === 1,
+      top: item.top,
+      createdAt: item.created_at,
+      approvedAt: item.approved_at ? new Date(item.approved_at).toISOString() : null,
+      rejectedAt: item.rejected_at ? new Date(item.rejected_at).toISOString() : null,
+      rejectReason: item.reject_reason,
+      updatedAt: item.updated_at ? new Date(item.updated_at).toISOString() : null,
+      reviewedAt: item.reviewed_at ? new Date(item.reviewed_at).toISOString() : null
+    }));
   },
 
   async setLinkList(env, type, list) {
@@ -233,11 +256,14 @@ const D1Storage = {
     
     // 批量插入新记录
     const stmt = env.D1.prepare(`
-      INSERT INTO links (id, type, title, link, avatar, descr, rss, top, created_at, reviewed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO links (id, type, title, link, avatar, descr, rss, email, pinned, top, created_at, approved_at, rejected_at, reject_reason, updated_at, reviewed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     for (const item of list) {
+      // 解析ISO时间戳
+      const parseDate = (iso) => iso ? new Date(iso).getTime() : null;
+      
       await stmt.bind(
         item.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
         type,
@@ -246,9 +272,15 @@ const D1Storage = {
         item.avatar,
         item.descr,
         item.rss || '',
+        item.email || '',
+        item.pinned ? 1 : 0,
         item.top || 0,
         item.createdAt || Date.now(),
-        item.reviewedAt || null
+        parseDate(item.approvedAt),
+        parseDate(item.rejectedAt),
+        item.rejectReason || '',
+        parseDate(item.updatedAt),
+        parseDate(item.reviewedAt)
       ).run();
     }
     return true;
