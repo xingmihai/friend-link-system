@@ -1,6 +1,6 @@
 // functions/api/_rss_core.js
 // RSS 抓取 + 轮换 + 格式化核心逻辑
-import { getList } from './_utils.js';
+import { getStorage } from './_storage.js';
 
 // UTC+8 (CST) 时间格式化
 function toCST(ts) {
@@ -24,10 +24,11 @@ const DEFAULT_FEEDS = [
  * 获取所有 RSS 源（已通过友链的 rss 字段 + 兜底默认源去重）
  */
 export async function getAllFeeds(env) {
-  const ids = await getList(env, 'link:list:approved');
+  const storage = getStorage(env);
+  const approved = await storage.getLinkList(env, 'approved');
   const feeds = new Set();
-  for (const id of ids) {
-    const r = JSON.parse(await env.LINKS.get(`link:approved:${id}`) || 'null');
+
+  for (const r of approved) {
     if (r?.rss) feeds.add(r.rss.trim());
   }
   DEFAULT_FEEDS.forEach(f => feeds.add(f));
@@ -38,25 +39,30 @@ export async function getAllFeeds(env) {
  * 执行一次更新：取游标处 2 条，合并到现有 articles，去重排序取前 20
  */
 export async function runRssUpdate(env) {
+  const storage = getStorage(env);
   const allFeeds = await getAllFeeds(env);
+
   if (allFeeds.length === 0) {
-    await env.LINKS.put('rss:articles', JSON.stringify([]));
+    await storage.put(env, 'rss:articles', JSON.stringify([]));
     return { updated: 0, total: 0, cursor: 0, feeds: [] };
   }
 
   // 读游标
-  const cursor = parseInt(await env.LINKS.get('rss:cursor') || '0', 10);
+  const cursor = parseInt(await storage.get(env, 'rss:cursor') || '0', 10);
+
   // 选两条（不重复）
   const pick = [];
   for (let i = 0; i < 2 && i < allFeeds.length; i++) {
     const idx = (cursor + i) % allFeeds.length;
     pick.push(allFeeds[idx]);
   }
+
   // 推进游标（+2）
   const newCursor = (cursor + 2) % allFeeds.length;
 
   // 读现有 articles
-  const existing = JSON.parse(await env.LINKS.get('rss:articles') || '[]');
+  const articlesRaw = await storage.get(env, 'rss:articles');
+  const existing = articlesRaw ? JSON.parse(articlesRaw) : [];
 
   // 抓取新选的两条
   const newArticles = [];
@@ -82,10 +88,10 @@ export async function runRssUpdate(env) {
   const formatted = top20.map(formatArticle);
 
   // 写回
-  await env.LINKS.put('rss:articles', JSON.stringify(formatted));
-  await env.LINKS.put('rss:cursor', String(newCursor));
-  await env.LINKS.put('rss:lastUpdate', toCST());
-  await env.LINKS.put('rss:feeds:current', JSON.stringify(pick));
+  await storage.put(env, 'rss:articles', JSON.stringify(formatted));
+  await storage.put(env, 'rss:cursor', String(newCursor));
+  await storage.put(env, 'rss:lastUpdate', toCST());
+  await storage.put(env, 'rss:feeds:current', JSON.stringify(pick));
 
   return {
     updated: pick.length,
@@ -116,11 +122,13 @@ async function fetchAndParse(url) {
 function parseXmlFeed(xml, sourceUrl) {
   const isAtom = xml.includes('<feed');
   let feedTitle = '未知来源';
+
   const titleMatch = xml.match(/<channel>[\s\S]*?<title>([\s\S]*?)<\/title>/i)
     || xml.match(/<feed[\s\S]*?<title>([\s\S]*?)<\/title>/i);
   if (titleMatch) feedTitle = stripTags(decodeEntities(titleMatch[1])).trim();
 
   const items = [];
+
   if (isAtom) {
     const entryRegex = /<entry[\s\S]*?<\/entry>/gi;
     const entries = xml.match(entryRegex) || [];
@@ -148,6 +156,7 @@ function parseXmlFeed(xml, sourceUrl) {
       });
     }
   }
+
   return { title: feedTitle, items, sourceUrl };
 }
 

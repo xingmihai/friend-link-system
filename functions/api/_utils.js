@@ -1,4 +1,5 @@
 import { connect } from 'cloudflare:sockets';
+import { getStorage, getList, setList } from './_storage.js';
 
 // functions/api/_utils.js
 // 通用工具：响应包装、KV 操作、密码哈希、Cookie 解析
@@ -72,6 +73,7 @@ export function parseCookies(req) {
 
 // 管理员鉴权（支持 Authorization header 和 Cookie 两种方式）
 export async function requireAdmin(req, env) {
+  const storage = getStorage(env);
   // 1. 优先检查 Authorization header
   const auth = req.headers.get('Authorization') || '';
   let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
@@ -81,11 +83,10 @@ export async function requireAdmin(req, env) {
     token = cookies['admin_token'] || '';
   }
   if (!token) return { ok: false, reason: '未登录' };
-  const session = await env.LINKS.get(`session:${token}`);
+  const session = await storage.getSession(env, token);
   if (!session) return { ok: false, reason: '会话已过期' };
-  const obj = JSON.parse(session);
-  if (obj.exp < Date.now()) {
-    await env.LINKS.delete(`session:${token}`);
+  if (session.exp < Date.now()) {
+    await storage.deleteSession(env, token);
     return { ok: false, reason: '会话已过期' };
   }
   return { ok: true, token };
@@ -123,15 +124,7 @@ export function validateLink(data) {
   return errors;
 }
 
-// 友链列表辅助：原子读改 list
-export async function getList(env, key) {
-  const raw = await env.LINKS.get(key);
-  return raw ? JSON.parse(raw) : [];
-}
-
-export async function setList(env, key, arr) {
-  await env.LINKS.put(key, JSON.stringify(arr));
-}
+// 友链列表辅助：原子读改 list（已从 _storage.js 导入，兼容原有调用）
 
 // 精美邮件 HTML 模板
 export function buildEmailHtml(title, content, btnText, btnUrl) {
@@ -197,16 +190,17 @@ export function escapeHtml(s) {
   }[c]));
 }
 
-// 邮件入队——秒存 KV，由 cron job 异步发送
+// 邮件入队——秒存存储，由 cron job 异步发送
 export async function queueEmail(env, subject, html, to) {
-  const raw = await env.LINKS.get('config:email');
+  const storage = getStorage(env);
+  const raw = await storage.getConfig(env, 'email');
   if (!raw) return; // 未配邮件则跳过
-  const cfg = JSON.parse(raw);
+  const cfg = raw;
   if (!cfg.to && !to) return; // 没收件人就不发
 
   // SMTP + 非异步：直接同步发送（简单稳定）
   if (cfg.provider === 'smtp') {
-    const smtpCfg = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
+    const smtpCfg = await storage.getConfig(env, 'smtp') || null;
     if (smtpCfg && smtpCfg.asyncSmtp !== true) {
       return sendEmail(env, subject, html, to || cfg.to).catch(e => console.error('SMTP直发失败:', e.message));
     }
@@ -214,7 +208,7 @@ export async function queueEmail(env, subject, html, to) {
 
   // 异步入队
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
-  await env.LINKS.put(key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
+  await storage.put(env, key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
 }
 
 // 立即触发队列发送（带 8 秒超时，防 SMTP 拖死请求）
@@ -234,15 +228,16 @@ export async function flushEmailQueue(request, env) {
 
 // 邮件发送（同步，仅供测试邮件等需要即时反馈的场景）
 export async function sendEmail(env, subject, html, to) {
-  const raw = await env.LINKS.get('config:email');
+  const storage = getStorage(env);
+  const raw = await storage.getConfig(env, 'email');
   if (!raw) throw new Error('邮件未配置');
-  const cfg = JSON.parse(raw);
+  const cfg = raw;
   if (!cfg.to && !to) throw new Error('收件邮箱未配置');
 
   const provider = cfg.provider || 'resend';
 
   if (provider === 'smtp') {
-    const smtpCfg = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
+    const smtpCfg = await storage.getConfig(env, 'smtp') || null;
     if (!smtpCfg) throw new Error('SMTP 未配置');
     return sendViaSmtp(smtpCfg, subject, html, to || cfg.to);
   }
@@ -367,13 +362,14 @@ async function sendViaSmtp(cfg, subject, html, to) {
 
 // 图床上传
 export async function uploadToTuCang(env, imageUrl) {
-  // 优先级：KV 管理后台配置 > 环境变量 > 内置默认值
+  const storage = getStorage(env);
+  // 优先级：存储管理后台配置 > 环境变量 > 内置默认值
   let token, folderId;
 
-  // 1. 读 KV
-  const raw = await env.LINKS.get('config:tuCang');
+  // 1. 读存储配置
+  const raw = await storage.getConfig(env, 'tuCang');
   if (raw) {
-    const cfg = JSON.parse(raw);
+    const cfg = raw;
     token = cfg.token;
     folderId = cfg.folderId;
   }

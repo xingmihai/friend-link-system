@@ -1,5 +1,6 @@
 // functions/api/submit.js
-import { ok, err, validateLink, genId, getList, setList, queueEmail, flushEmailQueue, buildEmailHtml, escapeHtml } from './_utils.js';
+import { ok, err, validateLink, genId, queueEmail, flushEmailQueue, buildEmailHtml, escapeHtml } from './_utils.js';
+import { getStorage } from './_storage.js';
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -8,44 +9,38 @@ export async function onRequestPost({ request, env }) {
   } catch {
     return err('请求体不是合法 JSON');
   }
+
   const errors = validateLink(body);
   if (errors.length) return err('校验失败', 400, { errors });
 
+  const storage = getStorage(env);
+
   // 防止重复：按 link 去重（待审核 + 已通过）
-  const pending = await getList(env, 'link:list:pending');
-  const approved = await getList(env, 'link:list:approved');
-  for (const id of pending) {
-    const r = await env.LINKS.get(`link:pending:${id}`);
-    if (r) {
-      const obj = JSON.parse(r);
-      if (obj.link === body.link.trim()) return err('该链接已有待审核申请');
-    }
-  }
-  for (const id of approved) {
-    const r = await env.LINKS.get(`link:approved:${id}`);
-    if (r) {
-      const obj = JSON.parse(r);
-      if (obj.link === body.link.trim()) return err('该链接已存在友链');
-    }
-  }
+  const pending = await storage.getLinkList(env, 'pending');
+  const approved = await storage.getLinkList(env, 'approved');
+
+  const link = body.link.trim();
+  if (pending.some(r => r.link === link)) return err('该链接已有待审核申请');
+  if (approved.some(r => r.link === link)) return err('该链接已存在友链');
 
   const id = genId();
   const record = {
     id,
     title: body.title.trim(),
     avatar: body.avatar.trim(),
-    link: body.link.trim(),
+    link: link,
     descr: body.descr.trim(),
     rss: (body.rss || '').trim(),
     email: (body.email || '').trim(),
     createdAt: new Date().toISOString()
   };
-  await env.LINKS.put(`link:pending:${id}`, JSON.stringify(record));
-  pending.push(id);
-  await setList(env, 'link:list:pending', pending);
+
+  // 添加到 pending 列表
+  pending.push(record);
+  await storage.setLinkList(env, 'pending', pending);
 
   // 通知管理员（队列异步发送）
-  const emailCfg = await env.LINKS.get('config:email');
+  const emailCfg = await storage.getConfig(env, 'email');
   if (emailCfg) {
     const adminUrl = new URL(request.url).origin + '/admin';
     const content = `

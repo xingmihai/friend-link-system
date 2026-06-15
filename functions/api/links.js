@@ -1,23 +1,21 @@
 // functions/api/links.js
 // 返回已通过的友链，严格按指定 JSON 格式
-import { getList } from './_utils.js';
+import { getStorage } from './_storage.js';
 
 export async function onRequestGet({ env }) {
-  const ids = await getList(env, 'link:list:approved');
-  const items = [];
-  for (const id of ids) {
-    const r = JSON.parse(await env.LINKS.get(`link:approved:${id}`) || 'null');
-    if (!r) continue;
-    items.push(r);
-  }
+  const storage = getStorage(env);
+  const items = await storage.getLinkList(env, 'approved');
+
   // 置顶排最前，其余随机打乱
   const pinned = items.filter(r => r.pinned);
   const unpinned = items.filter(r => !r.pinned);
   shuffle(unpinned);
   const sorted = [...pinned, ...unpinned];
+
   const out = sorted.map(r => ({
     name: r.title, link: r.link, avatar: r.avatar, descr: r.descr
   }));
+
   return new Response(JSON.stringify(out, null, 2), {
     status: 200,
     headers: {
