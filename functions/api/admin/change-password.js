@@ -1,5 +1,6 @@
 // functions/api/admin/change-password.js
 import { ok, err, requireAdmin, hashPassword, verifyPassword } from '../_utils.js';
+import { getStorage } from '../_storage.js';
 
 export async function onRequestPost({ request, env }) {
   const auth = await requireAdmin(request, env);
@@ -11,12 +12,13 @@ export async function onRequestPost({ request, env }) {
   if (!oldPassword || !newPassword) return err('原密码和新密码必填');
   if (newPassword.length < 6) return err('新密码至少 6 位');
 
-  const cfg = JSON.parse(await env.LINKS.get('config:admin') || '{}');
+  const storage = getStorage(env);
+  const cfg = await storage.getConfig(env, 'admin') || {};
   const valid = await verifyPassword(oldPassword, cfg.passHash);
   if (!valid) return err('原密码错误', 403);
 
   cfg.passHash = await hashPassword(newPassword);
-  await env.LINKS.put('config:admin', JSON.stringify(cfg));
+  await storage.setConfig(env, 'admin', cfg);
   return ok({ message: '密码已更新' });
 }
 

@@ -1,12 +1,11 @@
 // functions/api/admin/ai-convert.js
 // 调用 DeepSeek 将非标准文本转换为友链结构数据
 import { ok, err, requireAdmin } from '../_utils.js';
+import { getStorage } from '../_storage.js';
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const SYSTEM_PROMPT = `你是一个严格的数据提取工具。从用户提供的文字中提取友链信息。
-
 只返回一个 JSON 对象，格式：{"title":"网站名","avatar":"头像URL","link":"网站URL","descr":"描述","rss":"RSS地址"}
-
 规则：
 1. 只返回 JSON，不加任何其他文字、注释、代码块标记
 2. 无法提取的字段设为空字符串（不要推测填充）
@@ -28,6 +27,7 @@ export async function onRequestPost({ request, env }) {
   // 前置校验：输入太短或明显不是友链信息，不浪费 API token
   const t = text.trim();
   if (t.length < 8) return err('信息太短了，请提供网站名称和网址', 422);
+
   // 检查是否包含基本网站特征（域名或网址）
   if (!t.includes('.') && !t.includes('://') && !t.includes('。')) {
     return err('未识别到友链信息，请提供网站名称和网址', 422);
@@ -37,6 +37,7 @@ export async function onRequestPost({ request, env }) {
   if (!apiKey) return err('DeepSeek API Key 未配置（管理后台 AI 配置或环境变量 DEEPSEEK_KEY）');
 
   const reqId = ++keyIdCounter;
+
   try {
     const resp = await fetch(DEEPSEEK_URL, {
       method: 'POST',
@@ -96,13 +97,9 @@ export async function onRequestPost({ request, env }) {
 }
 
 async function getKey(env) {
-  const raw = await env.LINKS.get('config:ai');
-  if (raw) {
-    try {
-      const cfg = JSON.parse(raw);
-      if (cfg.apiKey) return cfg.apiKey;
-    } catch {}
-  }
+  const storage = getStorage(env);
+  const cfg = await storage.getConfig(env, 'ai');
+  if (cfg && cfg.apiKey) return cfg.apiKey;
   return env.DEEPSEEK_KEY || '';
 }
 
