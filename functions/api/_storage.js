@@ -163,13 +163,13 @@ const D1Storage = {
       )
     `).run();
 
-    // 6. 邮件队列表
+    // 6. 邮件队列表（to是SQLite保留关键字，改用mail_to）
     await env.D1.prepare(`
       CREATE TABLE IF NOT EXISTS email_queue (
         id TEXT PRIMARY KEY,
         subject TEXT NOT NULL,
         html TEXT NOT NULL,
-        to TEXT NOT NULL,
+        mail_to TEXT NOT NULL,
         created_at INTEGER NOT NULL
       )
     `).run();
@@ -331,7 +331,15 @@ const D1Storage = {
     const results = await env.D1.prepare(`
       SELECT * FROM email_queue ORDER BY created_at ASC
     `).all();
-    return results.results.map(item => ({ key: item.id, ...item }));
+    // 字段映射：mail_to -> to，保持与KV模式兼容
+    return results.results.map(item => ({ 
+      key: item.id, 
+      id: item.id,
+      subject: item.subject,
+      html: item.html,
+      to: item.mail_to,
+      created_at: item.created_at
+    }));
   },
 
   async deleteEmailQueueItem(env, key) {
