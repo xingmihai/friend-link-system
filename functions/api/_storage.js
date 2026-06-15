@@ -241,7 +241,7 @@ const D1Storage = {
       email: item.email,
       pinned: item.pinned === 1,
       top: item.top,
-      createdAt: item.created_at,
+      createdAt: item.created_at ? new Date(item.created_at).toISOString() : null,
       approvedAt: item.approved_at ? new Date(item.approved_at).toISOString() : null,
       rejectedAt: item.rejected_at ? new Date(item.rejected_at).toISOString() : null,
       rejectReason: item.reject_reason,
