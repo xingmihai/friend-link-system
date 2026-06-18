@@ -172,7 +172,7 @@ body,.email-container,.email-body,.email-header,.email-footer,.info-card{backgro
 body,p,h1,h2,h3,li,.label,.email-body p,.email-footer,.info-card,.info-card p,.email-body li{color:#333!important;-webkit-text-fill-color:#333!important}
 .email-header h1{color:#1a1a1a!important;-webkit-text-fill-color:#1a1a1a!important}
 .email-footer{color:#888!important;-webkit-text-fill-color:#888!important;background:#ffffff!important}
-.info-card{background:#fafafa!important}
+.info-card{background:#fafafa!important;border-left:4px solid #4f46e5!important}
 .label{color:#555!important;-webkit-text-fill-color:#555!important}
 .button{background:#4f46e5!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
 }
