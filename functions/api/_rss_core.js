@@ -46,14 +46,15 @@ export async function runRssUpdate(env) {
 
   // 读游标
   const cursor = parseInt(await env.LINKS.get('rss:cursor') || '0', 10);
-  // 选两条（不重复）
+  // 选：1/3 阶梯（最少2最多8）
+  const nPer = Math.min(Math.max(2, Math.round(allFeeds.length / 3)), 8);
   const pick = [];
-  for (let i = 0; i < 2 && i < allFeeds.length; i++) {
+  for (let i = 0; i < nPer && i < allFeeds.length; i++) {
     const idx = (cursor + i) % allFeeds.length;
     pick.push(allFeeds[idx]);
   }
-  // 推进游标（+2）
-  const newCursor = (cursor + 2) % allFeeds.length;
+  // 推进游标
+  const newCursor = (cursor + nPer) % allFeeds.length;
 
   // 读现有 articles
   const existing = JSON.parse(await env.LINKS.get('rss:articles') || '[]');

@@ -159,6 +159,8 @@
                     <p class="text-sm text-gray-600 mt-1" x-text="item.descr"></p>
                     <p x-show="item.rss" class="text-xs text-gray-400 mt-0.5">RSS: <span x-text="item.rss" class="break-all"></span></p>
                     <p class="text-xs text-gray-400 mt-1" x-text="formatDate(item.createdAt)"></p>
+                    <p x-show="item.remark" class="text-xs text-purple-600 mt-0.5">📝 备注：<span x-text="item.remark"></span></p>
+                    <div x-show="item.prevRejectReason" class="text-xs mt-1 py-1 px-2 bg-red-50 border border-red-100 rounded text-red-700">上次拒绝：<span x-text="item.prevRejectReason"></span></div>
                   </div>
                   <div class="flex gap-2 shrink-0 self-end sm:self-start mt-2 sm:mt-0">
                     <button x-show="tab==='pending'" @click="review(item.id,'approve')"

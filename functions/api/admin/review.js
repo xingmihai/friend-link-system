@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }) {
     const record = JSON.parse(await env.LINKS.get(`link:pending:${id}`) || 'null');
     if (!record) return err('记录不存在');
     record.rejectedAt = new Date().toISOString();
-    record.rejectReason = body.reason || '';
+    record.rejectReason = body.reason || '页面内容不符合申请要求';
 
     const rejected = await getList(env, 'link:list:rejected');
     await env.LINKS.put(`link:rejected:${id}`, JSON.stringify(record));

@@ -11,21 +11,30 @@ export async function onRequestPost({ request, env }) {
   const errors = validateLink(body);
   if (errors.length) return err('校验失败', 400, { errors });
 
-  // 防止重复：按 link 去重（待审核 + 已通过）
+  // 防止重复：按 link 去重
   const pending = await getList(env, 'link:list:pending');
   const approved = await getList(env, 'link:list:approved');
+  const rejected = await getList(env, 'link:list:rejected');
+  const link = body.link.trim();
   for (const id of pending) {
-    const r = await env.LINKS.get(`link:pending:${id}`);
-    if (r) {
-      const obj = JSON.parse(r);
-      if (obj.link === body.link.trim()) return err('该链接已有待审核申请');
-    }
+    const r = JSON.parse(await env.LINKS.get(`link:pending:${id}`) || 'null');
+    if (r?.link === link) return err('该链接已有待审核申请');
   }
   for (const id of approved) {
-    const r = await env.LINKS.get(`link:approved:${id}`);
-    if (r) {
-      const obj = JSON.parse(r);
-      if (obj.link === body.link.trim()) return err('该链接已存在友链');
+    const r = JSON.parse(await env.LINKS.get(`link:approved:${id}`) || 'null');
+    if (r?.link === link) return err('该链接已存在友链');
+  }
+
+  // 被拒绝后再次提交 → 移回待审核区
+  let prevRejectReason = '';
+  for (const id of rejected) {
+    const r = JSON.parse(await env.LINKS.get(`link:rejected:${id}`) || 'null');
+    if (r?.link === link) {
+      prevRejectReason = r.rejectReason || '';
+      // 从 rejected 删除
+      await env.LINKS.delete(`link:rejected:${id}`);
+      await setList(env, 'link:list:rejected', rejected.filter(x => x !== id));
+      break;
     }
   }
 
@@ -34,10 +43,12 @@ export async function onRequestPost({ request, env }) {
     id,
     title: body.title.trim(),
     avatar: body.avatar.trim(),
-    link: body.link.trim(),
+    link,
     descr: body.descr.trim(),
     rss: (body.rss || '').trim(),
     email: (body.email || '').trim(),
+    remark: (body.remark || '').trim(),
+    prevRejectReason, // 上次被拒理由（如果有）
     createdAt: new Date().toISOString()
   };
   await env.LINKS.put(`link:pending:${id}`, JSON.stringify(record));
@@ -60,6 +71,8 @@ export async function onRequestPost({ request, env }) {
         <tr><td style="padding:0 0 12px">${record.rss ? `<a href="${record.rss}" style="color:#667eea">${record.rss}</a>` : '<span style="color:#9ca3af">未提供</span>'}</td></tr>
         <tr><td style="padding:4px 0"><b style="color:#667eea">邮箱</b></td></tr>
         <tr><td style="padding:0 0 12px">${record.email || '<span style="color:#9ca3af">未提供</span>'}</td></tr>
+        ${record.remark ? `<tr><td style="padding:4px 0"><b style="color:#667eea">备注</b></td></tr><tr><td style="padding:0 0 12px">${escapeHtml(record.remark)}</td></tr>` : ''}
+        ${record.prevRejectReason ? `<tr><td style="padding:4px 0"><b style="color:#ef4444">上次拒绝原因</b></td></tr><tr><td style="padding:0 0 12px;color:#991b1b">${escapeHtml(record.prevRejectReason)}</td></tr>` : ''}
       </table>`;
     await queueEmail(env, `【新友链申请】${record.title}`,
       buildEmailHtml('📩 新友链申请', content, '前往审核', adminUrl));

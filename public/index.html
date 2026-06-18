@@ -81,11 +81,8 @@ avatar: https://wp-cdn.4ce.cn/v2/TVFIv5x.jpeg
 descr: 随性收拢生活散落的笑意
 rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
         <div class="flex gap-2">
-          <button type="button" @click="doParse" :disabled="parsing" class="bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition">
-            <span x-show="!parsing">📝 解析填入</span><span x-show="parsing">解析中…</span>
-          </button>
-          <button type="button" @click="doAiParse" :disabled="parsing" class="bg-purple-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-600 transition">
-            <span x-show="!parsing">🤖 AI 解析</span><span x-show="parsing">AI 解析中…</span>
+          <button type="button" @click="doSmartParse" :disabled="parsing" class="bg-purple-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-600 transition">
+            <span x-show="!parsing">🤖 智能解析</span><span x-show="parsing">解析中…</span>
           </button>
         </div>
         <div x-show="importMsg" class="text-xs px-3 py-1.5 rounded-lg"
@@ -163,6 +160,16 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
           <input x-model="form.email" type="email"
             class="input-focus w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 transition"
             placeholder="your@email.com（选填，通过/拒绝时会通知你）">
+        </div>
+
+        <!-- 备注 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            备注 <span class="text-gray-400 text-xs">（审核参考，选填）</span>
+          </label>
+          <input x-model="form.remark" type="text"
+            class="input-focus w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 transition"
+            placeholder="如有特别说明请在此填写…">
         </div>
 
         <!-- 条款 -->
@@ -267,65 +274,61 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
 <script>
 function app() {
   return {
-    form: { title: '', avatar: '', link: '', descr: '', rss: '', email: '', agreed: false },
+    form: { title: '', avatar: '', link: '', descr: '', rss: '', email: '', remark: '', agreed: false },
     loading: false, success: false, error: '',
     showImport: false, importText: '', parsing: false, importMsg: '', importOk: false,
     showEmailConfirm: false,
 
     init() {},
 
-    doParse() {
+    fillForm(title, avatar, link, descr, rss, email) {
+      this.form.title = title || '';
+      this.form.avatar = avatar || '';
+      this.form.link = link || '';
+      this.form.descr = (descr || '').substring(0, 200);
+      this.form.rss = rss || '';
+      this.form.email = email || '';
+    },
+
+    async doSmartParse() {
       const text = this.importText.trim();
       if (!text) { this.importMsg = '请粘贴数据'; this.importOk = false; return; }
+
+      // 字数限制
+      if (text.length < 20) { this.importMsg = '信息太短，至少 20 个字'; this.importOk = false; return; }
+      if (text.length > 200) { this.importMsg = '信息太长，请精简到 200 字以内'; this.importOk = false; return; }
+
       this.parsing = true; this.importMsg = ''; this.importOk = false;
 
+      // 先尝试本地直接解析（JSON / YAML / key:value）
       try {
-        // 尝试 JSON
         let data = null;
         if (text.startsWith('{')) {
           data = JSON.parse(text);
         } else {
-          // YAML 解析: key:value 按行
           data = {};
           text.split('\n').forEach(line => {
             const m = line.match(/^\s*([\w]+)\s*[:：]\s*(.+)/);
             if (m) data[m[1]] = m[2].trim();
           });
         }
-
-        // 字段映射
         const title = data.name || data.title || '';
         const avatar = data.avatar || data.image || data.img || '';
         const link = data.link || data.url || '';
         const descr = data.descr || data.description || data.desc || data.bio || '';
         const rss = data.rss || data.feed || '';
         const email = data.email || data.mail || '';
-
-        if (!title || !link) {
-          this.importMsg = '未提取到标题或链接，换种格式试试';
-          this.importOk = false;
-        } else {
-          this.form.title = title.substring(0, 50);
-          this.form.avatar = avatar;
-          this.form.link = link;
-          this.form.descr = descr.substring(0, 200);
-          this.form.rss = rss;
-          this.form.email = email;
-          this.importMsg = '✅ 已填入表单，确认后点提交';
+        if (title && link) {
+          this.fillForm(title.substring(0, 50), avatar, link, descr, rss, email);
+          this.importMsg = '✅ 已解析填入，确认后点提交';
           this.importOk = true;
+          this.parsing = false;
+          return;
         }
-      } catch {
-        this.importMsg = '解析失败，换种格式试试';
-        this.importOk = false;
-      } finally {
-        this.parsing = false;
-      }
-    },
+      } catch {}
 
-    async doAiParse() {
-      const text = this.importText.trim();
-      if (!text) { this.importMsg = '请粘贴数据'; this.importOk = false; return; }
-      this.parsing = true; this.importMsg = ''; this.importOk = false;
+      // 本地解析失败 → 走 AI
+      this.importMsg = '本地解析未成功，正在 AI 解析…';
       try {
         const r = await fetch('/api/admin/ai-convert', {
           method: 'POST',
@@ -334,12 +337,7 @@ function app() {
         });
         const d = await r.json();
         if (r.ok && d.data) {
-          this.form.title = d.data.title;
-          this.form.avatar = d.data.avatar;
-          this.form.link = d.data.link;
-          this.form.descr = d.data.descr;
-          this.form.rss = d.data.rss;
-          // 提示哪些字段缺失
+          this.fillForm(d.data.title, d.data.avatar, d.data.link, d.data.descr, d.data.rss);
           const missing = [];
           if (!d.data.title) missing.push('标题');
           if (!d.data.link) missing.push('链接');
