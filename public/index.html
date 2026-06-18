@@ -134,7 +134,7 @@
   .rule-item {
     transition: all 0.25s ease;
     border-radius: 0.5rem;
-    padding: 0.55rem 0.75rem;
+    padding: 0.6rem 0.75rem;
   }
   .rule-item:hover {
     background: rgba(80, 70, 228, 0.04);
@@ -192,18 +192,18 @@
   .tag-recommended { background: #eeecff; color: #5046e4; }
 </style>
 </head>
-<body class="min-h-screen py-10 px-4">
+<body class="min-h-screen pt-6 pb-12 md:py-10 px-4">
 
 <div x-data="app()" x-init="init()" x-cloak class="max-w-2xl mx-auto">
 
   <!-- Header -->
   <header class="text-center mb-6 md:mb-10">
-    <div class="inline-flex items-center justify-center w-14 h-14 bg-accent-light rounded-2xl mb-4">
-      <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-accent-light rounded-2xl mb-3 md:mb-4">
+      <svg class="w-6 h-6 md:w-7 md:h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
       </svg>
     </div>
-    <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-[#1a1a2e] mb-2">友情链接</h1>
+    <h1 class="text-2xl md:text-5xl font-bold tracking-tight text-[#1a1a2e] mb-1.5 md:mb-2">友情链接</h1>
     <p class="text-sm tracking-widest uppercase text-[#9c9788]">Friend Links · 申请友链</p>
   </header>
 
@@ -211,7 +211,7 @@
   <div class="card-warm py-5 px-4 md:py-8 md:px-8 mb-6">
 
     <!-- Import Section -->
-    <div class="bg-warm rounded-xl p-5 mb-8 border border-[#e8e5df]">
+    <div class="bg-warm rounded-xl p-4 md:p-5 mb-6 md:mb-8 border border-[#e8e5df]">
       <div class="flex items-center justify-between mb-2">
         <h3 class="font-semibold text-[#1a1a2e] text-sm flex items-center gap-2">
           <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -242,11 +242,11 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
     </div>
 
     <form @submit.prevent="submit">
-      <div class="space-y-6">
+      <div class="space-y-5 md:space-y-6">
 
         <!-- 网站标题 -->
         <div>
-          <label class="label-warm">
+          <label class="label-warm text-sm md:text-[0.85rem]">
             网站标题 <span class="tag-warm tag-required">必填</span>
           </label>
           <input x-model="form.title" maxlength="50" type="text" required
@@ -327,15 +327,15 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
         </div>
 
         <!-- 条款 -->
-        <div class="bg-warm rounded-xl p-6 border border-[#e8e5df]">
-          <h3 class="font-semibold text-[#1a1a2e] mb-4 flex items-center text-sm">
+        <div class="bg-warm rounded-xl p-4 md:p-6 border border-[#e8e5df]">
+          <h3 class="font-semibold text-[#1a1a2e] mb-3 md:mb-4 flex items-center text-sm">
             <svg class="w-5 h-5 mr-2 text-accent" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
               <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
             </svg>
             友情链接申请原则
           </h3>
-          <ul class="space-y-1.5 text-sm text-[#5c5c6e]">
+          <ul class="space-y-1 md:space-y-1.5 text-sm text-[#5c5c6e]">
             <li class="rule-item">
               <span class="text-accent font-bold text-xs mr-1.5">1.</span> 友链内容需符合中国法规，<b class="text-red-500">禁止黄、赌、毒等</b>有害内容
             </li>
@@ -358,7 +358,7 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
               <span class="text-accent font-bold text-xs mr-1.5">7.</span> 贵站需<b class="text-accent">已添加本站</b>为友情链接
             </li>
           </ul>
-          <label class="flex items-center mt-5 cursor-pointer select-none group">
+          <label class="flex items-center mt-4 md:mt-5 py-1 px-1 -mx-1 cursor-pointer select-none group">
             <input x-model="form.agreed" type="checkbox" required
               class="w-4 h-4 rounded border-gray-300">
             <span class="ml-2.5 text-sm text-[#5c5c6e] group-hover:text-[#1a1a2e] transition-colors">我已阅读并同意以上全部条款</span>
@@ -384,7 +384,23 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
     </form>
   </div>
 
-  <!-- 邮箱确认弹窗 -->
+  <!-- 成功弹窗 -->
+  <div x-show="success" x-transition.opacity
+    class="fixed inset-0 modal-overlay flex items-end md:items-center justify-center p-0 md:p-4 z-50" @click.self="success=false">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl p-6 md:p-8 w-full md:max-w-sm text-center shadow-2xl border border-[#e8e5df]" @click.stop>
+      <div class="w-16 h-16 bg-accent-light rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-[#1a1a2e] mb-2">提交成功</h3>
+      <p class="text-[#5c5c6e] text-sm mb-4">审核通过后会通过邮箱通知你</p>
+      <p class="text-xs text-[#b0ada6]">申请 ID：<span x-text="submitId" class="font-mono text-accent"></span></p>
+      <button @click="reset()" class="mt-6 px-6 py-2.5 min-h-[44px] rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-hover transition-colors touch-manipulation active:scale-[0.97] w-full md:w-auto">返回首页</button>
+    </div>
+  </div>
+
+<!-- 邮箱确认弹窗 -->
   <div x-show="showEmailConfirm" x-transition.opacity
     class="fixed inset-0 modal-overlay flex items-end md:items-center justify-center p-0 md:p-4 z-50" @click.self="showEmailConfirm=false">
     <div class="bg-white rounded-t-2xl md:rounded-2xl p-6 md:p-8 w-full md:max-w-sm text-center shadow-2xl border border-[#e8e5df]" @click.stop>
