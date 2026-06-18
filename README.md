@@ -70,35 +70,35 @@ friendsApi: "https://你的域名/api/links"
 ### 第 2 步：在 Cloudflare 创建项目
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 左侧菜单点 **Workers & Pages**
-3. 点 **Create** → **Pages** → **Connect to Git**
+2. 左侧菜单点 **Workers 和 Pages**
+3. 点 **创建** → **Pages** → **连接到 Git**
 4. **授权 Cloudflare 访问你的 GitHub**（第一次用的话需要点一下授权）
-5. 在弹出的仓库列表里找到你刚 Fork 的那个仓库，点 **Begin setup**
-6. **Build settings** 保持默认就行，但检查一下：
-   - **Framework preset** → 选 **None**
-   - **Build command** → 留空
-   - **Build output directory** → 填 **`public`**
-7. 点 **Save and Deploy**
+5. 在弹出的仓库列表里找到你刚 Fork 的那个仓库，点 **设置并开始部署**
+6. **构建设置** 保持默认就行，但检查一下：
+   - **Framework preset** → 选 **无**
+   - **构建命令** → 留空
+   - **构建输出目录** → 填 **`public`**
+7. 点 **保存并部署**
 8. 等一两分钟，Cloudflare 会自动构建部署。完成后会给你一个地址：`xxxx-xxx.pages.dev`
 
 ### 第 3 步：绑定 KV 数据库（用来存数据）
 
 > KV 是 Cloudflare 提供的一个免费数据库，用来存储友链记录、配置等。
 
-1. 回到 Cloudflare Dashboard，左侧菜单点 **Workers & Pages** → **KV**
-2. 点 **Create a namespace** → 名称填 **`friend-links`** → 点 **Create**
-3. 回到 **Workers & Pages**，点你刚创建的那个 Pages 项目
+1. 回到 Cloudflare Dashboard，左侧菜单点 **Workers 和 Pages** → **KV**
+2. 点 **创建命名空间** → 名称填 **`friend-links`** → 点 **创建**
+3. 回到 **Workers 和 Pages**，点你刚创建的那个 Pages 项目
 4. 点顶部的 **Settings** 标签 → 左侧 **Functions** → **KV namespace bindings**
-5. 点 **Add binding**：
-   - **Variable name** 填：**`LINKS`**（必须一模一样，大小写不能错）
-   - **KV namespace** 选：**`friend-links`**（刚创建的那个）
+5. 点 **添加绑定**：
+   - **变量名称** 填：**`LINKS`**（必须一模一样，大小写不能错）
+   - **KV 命名空间** 选：**`friend-links`**（刚创建的那个）
 
 ### 第 4 步：配置环境变量
 
 > 用来存一些密钥类的信息，不暴露在代码里。
 
 1. 在同一个项目里，点 **Settings** → **Environment variables**
-2. 点 **Add variable**：
+2. 点 **添加变量**：
 
 | 变量名 | 值 | 说明 |
 |--------|-----|------|
@@ -135,7 +135,7 @@ friendsApi: "https://你的域名/api/links"
 
 > 对方发来的友链数据格式不对时，DeepSeek AI 会自动帮你转成标准格式。
 
-1. 注册 [DeepSeek](https://platform.deepseek.com) → **API Keys** → **Create API Key**
+1. 注册 [DeepSeek](https://platform.deepseek.com) → **API 密钥** → **创建密钥**
 2. 复制 Key（格式 `sk-xxxxx`）
 3. 打开管理后台 → **AI 配置** → 粘贴 Key → 保存
 
@@ -148,13 +148,13 @@ friendsApi: "https://你的域名/api/links"
 由于 Cloudflare 不支持自动定时任务，需要一个免费的外部服务来触发：
 
 1. 打开 [cron-job.org](https://cron-job.org) 注册
-2. 点 **Create Cronjob**
+2. 点 **创建定时任务**
 3. 按下面填：
    - **URL**：`https://你的域名.pages.dev/api/cron/refresh`
    - **Method**：选 **GET**
    - **Headers**：加一个 `X-Cron-Secret`，值填你第 4 步设的 `CRON_SECRET`
    - **Schedule**：选 **Every 4 hours**
-4. 点 **Create**，搞定
+4. 点 **创建**，搞定
 
 > 这样每 4 小时系统会自动刷新 RSS，不需要你做任何操作。
 
@@ -162,8 +162,8 @@ friendsApi: "https://你的域名/api/links"
 
 > 用 `xxx.pages.dev` 也能用，但绑定自己的域名更好看也更稳定。
 
-1. Cloudflare Dashboard → **Workers & Pages** → 你的项目
-2. 点 **Custom domains** → **Set up a custom domain**
+1. Cloudflare Dashboard → **Workers 和 Pages** → 你的项目
+2. 点 **自定义域** → **设置自定义域**
 3. 输入你的域名（比如 `friends.yourdomain.com`）
 4. Cloudflare 会自动配置 DNS，等一两分钟生效
 
