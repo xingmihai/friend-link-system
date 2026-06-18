@@ -542,7 +542,7 @@ init({
         <div x-show="tab==='blacklist'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">🚫 黑名单</h2>
           <div class="card rounded-xl p-6 max-w-lg">
-            <p class="text-sm text-[#4a4a5a] mb-3">连续 3 次发送失败自动拉黑，被拉黑后不再尝试发邮件。</p>
+            <p class="text-sm text-[#4a4a5a] mb-3">每个申请人邮箱最多收 3 封邮件（管理员收件邮箱除外），超限自动不再发送。</p>
             <button @click="loadBlacklist" :disabled="blLoading" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm mb-4">
               <span x-show="!blLoading">🔄 刷新</span><span x-show="blLoading">加载中…</span>
             </button>

@@ -1,6 +1,6 @@
 // functions/api/cron/send-pending.js
 // 扫描邮件队列，逐封发送——带锁防并发、批次限制、失败重试
-import { sendEmail, incrEmailCounter } from '../_utils.js';
+import { sendEmail } from '../_utils.js';
 
 const MAX_BATCH = 10;
 const MAX_RETRIES = 3;
@@ -51,7 +51,6 @@ export async function onRequestGet({ request, env }) {
       try {
         await sendEmail(env, entry.subject, entry.html, entry.to || undefined);
         await env.LINKS.delete(k.name);
-        if (entry.to) await incrEmailCounter(env, entry.to);
         // 频率计数 +1
         const currentRate = (parseInt(await env.LINKS.get(rateKey) || '0', 10) || 0) + 1;
         await env.LINKS.put(rateKey, String(currentRate), { expirationTtl: RATE_WINDOW });

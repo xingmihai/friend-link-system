@@ -209,21 +209,26 @@ export async function queueEmail(env, subject, html, to) {
   const recipient = to || cfg.to;
   if (!recipient) return;
 
-  // 黑名单检查（3次失败拉黑，统一存一个 JSON 对象）
-  const blRaw = await env.LINKS.get('email-blacklist') || '{}';
-  const bl = JSON.parse(blRaw);
-  if ((bl[recipient] || 0) >= 3) return;
+  // 黑名单检查（每邮箱上限 3 封，管理员收件邮箱除外）
+  const isAdmin = recipient === cfg.to;
+  if (!isAdmin) {
+    const blRaw = await env.LINKS.get('email-blacklist') || '{}';
+    const bl = JSON.parse(blRaw);
+    if ((bl[recipient] || 0) >= 3) return;
+  }
 
   // 入队 KV
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
   await env.LINKS.put(key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
+
+  // 先计次（不管发送成败，每封都算），管理员除外
+  if (!isAdmin) await incrEmailCounter(env, recipient);
 
   // 发送逻辑
   const doSend = async () => {
     try {
       await sendEmail(env, subject, html, recipient);
       await env.LINKS.delete(key);
-      await incrEmailCounter(env, recipient);
       return true;
     } catch { return false; }
   };
