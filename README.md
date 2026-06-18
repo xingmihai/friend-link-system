@@ -92,7 +92,6 @@ friendsApi: "https://你的域名/api/links"
 5. 点 **Add binding**：
    - **Variable name** 填：**`LINKS`**（必须一模一样，大小写不能错）
    - **KV namespace** 选：**`friend-links`**（刚创建的那个）
-6. 🔴 **注意**：上面有个下拉框可以选 `Production` 还是 `Preview`，**两个都要各绑定一次**，不然部署新版本后配置会丢
 
 ### 第 4 步：配置环境变量
 
@@ -104,8 +103,6 @@ friendsApi: "https://你的域名/api/links"
 | 变量名 | 值 | 说明 |
 |--------|-----|------|
 | `CRON_SECRET` | 随便打一串乱码，比如 `abc123xyz` | 用来保护 RSS 刷新接口 |
-
-3. 🔴 **同样**：`Production` 和 `Preview` 各配一次
 
 ### 第 5 步：登录管理后台
 
