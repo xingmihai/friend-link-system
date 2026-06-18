@@ -5,8 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>友链管理系统</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://unpkg.com/@waline/client@v3/dist/waline.css">
-<script src="https://unpkg.com/@waline/client@v3/dist/waline.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@waline/client@3.15.2/dist/waline.css">
+<script type="module">
+import { init } from 'https://unpkg.com/@waline/client@3.15.2/dist/waline.js';
+init({
+  el: '#waline',
+  serverURL: 'https://waline.xiaow.qzz.io',
+  path: '/admin',
+  lang: 'zh-CN',
+  dark: false,
+  requiredMeta: ['nick'],
+  emoji: ['https://unpkg.com/@waline/emojis@1.2.0/alus'],
+  pageSize: 10
+});
+</script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 <style>
   body {
@@ -625,20 +637,6 @@
           :class="toast.ok?'bg-emerald-600 text-white':'bg-red-600 text-white'" x-text="toast.msg"></div>
 
       </main>
-
-      <script>
-      // Waline 评论区（多域名下 path 相同评论互通）
-      Waline.init({
-        el: '#waline',
-        serverURL: 'https://waline.xiaow.qzz.io',
-        path: '/admin',
-        lang: 'zh-CN',
-        dark: false,
-        requiredMeta: ['nick'],
-        emoji: ['https://unpkg.com/@waline/emojis@1.2.0/alus'],
-        pageSize: 10
-      });
-      </script>
     </div>
   </div>
 </div>
