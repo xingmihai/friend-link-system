@@ -251,6 +251,10 @@ init({
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg">
             💬 建议反馈
           </button>
+          <button @click="tab='blacklist';if(window.innerWidth<1024)sidebarOpen=false" :class="sidebarClass('blacklist')"
+            class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg">
+            🚫 黑名单
+          </button>
         </nav>
 
         <div class="hidden lg:block mt-auto pt-4">
@@ -550,6 +554,29 @@ init({
           </div>
         </div>
 
+        <!-- === 黑名单 === -->
+        <div x-show="tab==='blacklist'" x-transition.opacity.duration.200>
+          <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">🚫 黑名单</h2>
+          <div class="card rounded-xl p-6 max-w-lg">
+            <p class="text-sm text-[#4a4a5a] mb-3">连续 3 次发送失败自动拉黑，被拉黑后不再尝试发邮件。</p>
+            <button @click="loadBlacklist" :disabled="blLoading" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm mb-4">
+              <span x-show="!blLoading">🔄 刷新</span><span x-show="blLoading">加载中…</span>
+            </button>
+            <div x-show="blError" class="text-red-600 text-sm mb-3" x-text="blError"></div>
+            <div x-show="blacklist.length===0 && !blLoading" class="text-sm text-gray-400">暂无黑名单记录</div>
+            <template x-for="b in blacklist" :key="b.email">
+              <div class="flex items-center justify-between bg-red-50 border border-red-100 rounded-lg px-4 py-3 mb-2">
+                <div class="flex-1 min-w-0">
+                  <span class="text-sm font-medium text-[#1a1a2e] break-all" x-text="b.email"></span>
+                  <span class="text-xs text-red-500 ml-2" x-text="'失败 ' + b.count + ' 次'"></span>
+                </div>
+                <button @click="resetBlacklist(b.email)" :disabled="blLoading"
+                  class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ml-3 touch-manipulation active:scale-[0.97]">解除</button>
+              </div>
+            </template>
+          </div>
+        </div>
+
         <!-- === 编辑弹窗 === -->
         <div x-show="editModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="editModal=false">
           <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl" @click.stop>
@@ -680,6 +707,7 @@ function admin() {
     pwdForm: { old: '', new: '', cfm: '' }, pwdMsg: '', pwdOk: false,
     usernameForm: { newName: '' }, usernameInfo: 'admin', usernameMsg: '', usernameOk: false,
     importMsg: '', importOk: false,
+    blacklist: [], blLoading: false, blError: '',
     rssCfg: { cacheSize: 20 }, rssMsg: '', rssOk: false,
     editModal: false, editForm: { id: '', title: '', avatar: '', link: '', descr: '', rss: '' },
     editMsg: '', editOk: false, confirmDelete: null, processingId: null,
@@ -689,10 +717,10 @@ function admin() {
     toast: { show: false, msg: '', ok: false }, _toastTimer: null,
 
     get tabTitle() {
-      return { pending: '📋 待审核', approved: '✅ 已通过', rejected: '❌ 已拒绝' }[this.tab] || '';
+      return { pending: '📋 待审核', approved: '✅ 已通过', rejected: '❌ 已拒绝', blacklist: '🚫 黑名单' }[this.tab] || '';
     },
     get tabTitleShort() {
-      return { pending: '待审核', approved: '已通过', rejected: '已拒绝', rss: 'RSS', email: '邮件', tucang: '图床', ai: 'AI', password: '密码' }[this.tab] || '';
+      return { pending: '待审核', approved: '已通过', rejected: '已拒绝', rss: 'RSS', email: '邮件', tucang: '图床', ai: 'AI', password: '密码', blacklist: '黑名单' }[this.tab] || '';
     },
 
     sidebarClass(t) { return t === this.tab ? 'sidebar-link active' : 'sidebar-link text-white/80 hover:bg-white/5'; },
@@ -947,6 +975,33 @@ function admin() {
         if (r.ok) { this.rssOk = true; this.rssMsg = '✅ 已保存'; }
         else { const d = await r.json(); this.rssMsg = d.error || '保存失败'; }
       } catch { this.rssMsg = '网络错误'; } finally { this.saving = false; }
+    },
+
+    async loadBlacklist() {
+      this.blLoading = true; this.blError = '';
+      try {
+        const r = await this.api('/api/admin/blacklist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'list' })
+        });
+        if (r.ok) { const d = await r.json(); this.blacklist = d.data?.list || []; }
+        else if (r.status === 401) { localStorage.removeItem('admin_token'); this.loggedIn = false; return; }
+        else { const d = await r.json(); this.blError = d.error || '加载失败'; }
+      } catch { this.blError = '网络错误'; } finally { this.blLoading = false; }
+    },
+
+    async resetBlacklist(email) {
+      this.blLoading = true; this.blError = '';
+      try {
+        const r = await this.api('/api/admin/blacklist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reset', email })
+        });
+        if (r.ok) { this.blacklist = this.blacklist.filter(b => b.email !== email); }
+        else { const d = await r.json(); this.blError = d.error || '操作失败'; }
+      } catch { this.blError = '网络错误'; } finally { this.blLoading = false; }
     },
 
     async loadConfig() {
