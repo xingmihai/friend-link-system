@@ -143,27 +143,35 @@ export function buildEmailHtml(title, content, btnText, btnUrl) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light only">
-<meta name="supported-color-schemes" content="light only">
 <title>友链通知</title>
 <style>
 body{margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;color:#333;line-height:1.6}
 .email-container{max-width:600px;margin:20px auto;border:1px solid #eee;border-radius:8px;overflow:hidden}
-.email-header{padding:24px;text-align:center;border-bottom:1px solid #f0f0f0}
+.email-header{padding:24px;text-align:center;border-bottom:1px solid #f0f0f0;background:#ffffff}
 .email-header h1{margin:0;font-size:20px;color:#1a1a1a;font-weight:600}
-.email-body{padding:24px;font-size:15px}
-.email-body p{margin:0 0 16px}
+.email-body{padding:24px;font-size:15px;background:#ffffff;color:#333}
+.email-body p{margin:0 0 16px;color:#333}
+.email-body li{color:#333}
 .info-card{background:#fafafa;border-left:4px solid #4f46e5;padding:16px;margin:20px 0;border-radius:4px}
-.info-card p{margin:0 0 8px;word-break:break-all}
+.info-card p{margin:0 0 8px;word-break:break-all;color:#333}
 .info-card p:last-child{margin-bottom:0}
 .label{font-weight:600;color:#555;display:inline-block;min-width:60px}
 .button-container{text-align:center;margin:30px 0}
 .button{display:inline-block;background:#4f46e5;color:#fff!important;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:500}
 .button:hover{background:#4338ca}
-.email-footer{padding:20px 24px;text-align:center;font-size:13px;color:#888;border-top:1px solid #f0f0f0}
+.email-footer{padding:20px 24px;text-align:center;font-size:13px;color:#888;border-top:1px solid #f0f0f0;background:#ffffff}
 @media screen and (max-width:620px){
 .email-container{margin:0;border:none;border-radius:0}
 .email-body,.email-header,.email-footer{padding:20px}
+}
+@media (prefers-color-scheme:dark){
+body,.email-container,.email-body,.email-header,.email-footer,.info-card{background:#ffffff!important}
+body,p,h1,li,.label,.email-body p,.email-footer,.info-card,.info-card p{color:#333!important}
+.email-header h1{color:#1a1a1a!important}
+.email-footer{color:#888!important;background:#ffffff!important}
+.info-card{background:#fafafa!important}
+.label{color:#555!important}
+.button{background:#4f46e5!important;color:#fff!important}
 }
 </style>
 </head>
@@ -206,31 +214,27 @@ export async function queueEmail(env, subject, html, to) {
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
   await env.LINKS.put(key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
 
-  // 后台尝试立即发送（不阻塞）
-  const sendInBg = async () => {
+  // 发送逻辑
+  const doSend = async () => {
     try {
-      if (cfg.provider === 'smtp') {
-        await sendEmail(env, subject, html, recipient);
-      } else {
-        // Resend 走 sendEmail 兼容
-        await sendEmail(env, subject, html, recipient);
-      }
-      await env.LINKS.delete(key); // 发送成功 → 从队列删
+      await sendEmail(env, subject, html, recipient);
+      await env.LINKS.delete(key);
       await incrEmailCounter(env, recipient);
-    } catch {
-      // 失败就留在队列，等 cron 重试
-    }
+      return true;
+    } catch { return false; }
   };
-  // 如果 SMTP 且没开异步，await（兼容旧行为）
+
+  // SMTP + 没开异步 → 直发（等返回）
   if (cfg.provider === 'smtp') {
     const smtpCfg = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
     if (!smtpCfg?.asyncSmtp) {
-      await sendInBg();
+      await doSend();
       return;
     }
   }
-  // 异步：fire-and-forget
-  sendInBg().catch(() => {});
+
+  // 异步模式 → 后台 fire-and-forget，失败等 cron
+  doSend().catch(() => {});
 }
 
 // 发送成功后递增黑名单计数（3次拉黑）
