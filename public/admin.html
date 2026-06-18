@@ -647,7 +647,7 @@ function admin() {
     // RSS
     rssStatus: { cursor: 0, lastUpdate: null, currentFeeds: [], articleCount: 0 }, refreshing: false,
     // 配置
-    emailCfg: { provider: 'resend', apiKey: '', from: '', fromName: '', to: '' },
+    emailCfg: { provider: 'resend', apiKey: '', from: '', fromName: '', to: '', notifyMode: 'every' },
     smtpCfg: { host: 'smtp.qq.com', port: 465, user: '', password: '', from: '', fromName: '', asyncSmtp: false },
     tuCangCfg: { token: '', folderId: '' },
     aiCfg: { apiKey: '' }, aiMsg: '', aiOk: false,
@@ -732,7 +732,7 @@ function admin() {
         this.loggingIn = false;
         await this.loadCounts();
         await this.loadList('pending');
-      } catch (e) { this.loginError = '网络错误：' + e.message; this.loggingIn = false; }
+      } catch (e) { console.error('login init error:', e); this.loggingIn = false; }
     },
 
     async logout() {
