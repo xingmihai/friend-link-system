@@ -23,13 +23,19 @@
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   .btn {
     transition: all 0.2s;
     font-weight: 500;
     border-radius: 0.5rem;
+    touch-action: manipulation;
   }
-  .btn:active { transform: scale(0.97); }
+  .btn:active { transform: scale(0.97); transition: transform 0.05s; }
   .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
   .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
   .badge-rss { background: #eef2ff; color: #5046e4; }
@@ -47,6 +53,69 @@
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .slide-in { animation: slideIn 0.25s; }
   @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== 移动端优化 ===== */
+  @media (max-width: 1023px) {
+    /* 侧边栏全屏遮罩 */
+    aside[x-show] {
+      z-index: 60 !important;
+      width: 100% !important;
+      max-width: 280px;
+      box-shadow: 4px 0 30px rgba(0,0,0,0.4);
+    }
+    /* 侧边栏打开时背景遮罩 */
+    .sidebar-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      z-index: 55;
+    }
+    /* 卡片按钮全宽 + 触摸目标 */
+    .card .flex-col button {
+      min-height: 44px; width: 100%;
+    }
+    /* 表单输入全宽、标签在上 */
+    form .flex.sm\\:flex-row {
+      flex-direction: column;
+    }
+    /* 弹窗全宽、仅上方圆角 */
+    .modal-overlay > div,
+    [x-show*="Modal"] > div.bg-white {
+      width: 100% !important; max-width: 100% !important;
+      margin: auto 0 0 0 !important;
+      border-radius: 1rem 1rem 0 0 !important;
+      max-height: 90vh; overflow-y: auto;
+    }
+    [x-show*="Modal"] {
+      align-items: flex-end !important;
+    }
+    /* Toast 居中靠底、更宽 */
+    .toast-mobile {
+      left: 1rem !important; right: 1rem !important;
+      transform: none !important; bottom: 1rem !important;
+      text-align: center; width: auto !important;
+    }
+    /* 状态卡片堆叠 */
+    .grid.grid-cols-2 {
+      grid-template-columns: 1fr !important;
+    }
+    /* 主内容区内边距 */
+    main { padding: 1rem !important; }
+    /* 卡片内边距 */
+    .card.rounded-xl { padding: 1rem !important; }
+    /* 防止横向滚动 */
+    body, .gradient-bg { overflow-x: hidden; }
+    main, .card, form, header, footer { max-width: 100%; }
+    img, svg, video, iframe { max-width: 100%; height: auto; }
+    /* 长代码块可滚动 */
+    code.block { white-space: pre-wrap; word-break: break-all; }
+    /* 标题字号适配 */
+    h2.text-2xl { font-size: 1.25rem !important; }
+    /* 状态筛选按钮触摸目标 */
+    .sidebar-link { min-height: 44px; display: flex; align-items: center; }
+  }
+  @media (min-width: 1024px) {
+    main { padding: 2rem !important; }
+  }
 </style>
 </head>
 <body class="gradient-bg">
@@ -91,7 +160,7 @@
 
     <!-- 顶部导航栏（手机端汉堡菜单） -->
     <header class="bg-[#1a1a24] border-b border-white/10 flex items-center justify-between px-4 py-3 lg:hidden sticky top-0 z-30">
-      <button @click="sidebarOpen=!sidebarOpen" class="text-white p-1">
+      <button @click="sidebarOpen=!sidebarOpen" class="text-white w-11 h-11 flex items-center justify-center rounded-lg hover:bg-white/10 transition">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path x-show="!sidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
           <path x-show="sidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -102,9 +171,10 @@
     </header>
 
     <div class="flex min-h-screen">
-      <!-- 侧边栏 -->
+      <!-- 侧边栏（含移动端遮罩） -->
+      <div x-show="sidebarOpen" @click="sidebarOpen=false" x-transition.opacity class="sidebar-backdrop lg:hidden"></div>
       <aside x-show="sidebarOpen" @click.outside="sidebarOpen=false" x-transition.opacity.duration.200
-        class="lg:block fixed lg:sticky top-0 left-0 z-40 w-60 h-screen bg-[#1a1a24] border-r border-white/5 text-white p-4 overflow-y-auto shrink-0"
+        class="lg:block fixed lg:sticky top-0 left-0 z-40 lg:z-auto w-60 h-screen bg-[#1a1a24] border-r border-white/5 text-white p-4 overflow-y-auto shrink-0"
         :class="sidebarOpen?'block':'hidden'">
 
         <div class="hidden lg:block text-center py-4 border-b border-white/5 mb-4">
@@ -119,7 +189,7 @@
         <nav class="space-y-1">
           <button @click="switchTab('pending')" :class="sidebarClass('pending')"
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg flex items-center justify-between">
-            <span>待审核</span>
+            <span>📋 待审核</span>
             <span x-show="counts.pending>0" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full" x-text="counts.pending"></span>
           </button>
           <button @click="switchTab('approved')" :class="sidebarClass('approved')"
@@ -144,7 +214,7 @@
           </button>
           <button @click="switchTab('ai')" :class="sidebarClass('ai')"
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5">
-            🤖 AI 配置
+            ⚡ AI 配置
           </button>
           <button @click="switchTab('password')" :class="sidebarClass('password')"
             class="sidebar-link w-full text-left px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5">
@@ -170,7 +240,7 @@
       </aside>
 
       <!-- 主内容 -->
-      <main class="flex-1 p-4 md:p-8 overflow-y-auto scrollbar-thin min-h-screen lg:pt-0 pt-16">
+      <main class="flex-1 px-4 lg:px-6 py-4 lg:py-8 overflow-y-auto scrollbar-thin min-h-screen pt-16 lg:pt-0">
 
         <!-- 必须改密提示 -->
         <div x-show="mustChangePwd" class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-lg flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
@@ -179,11 +249,11 @@
         </div>
 
         <!-- === 列表区域 === -->
-        <div x-show="['pending','approved','rejected'].includes(tab)">
+        <div x-show="['pending','approved','rejected'].includes(tab)" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4" x-text="tabTitle"></h2>
           <div class="space-y-3">
             <template x-for="item in list" :key="item.id">
-              <div class="card rounded-xl p-4 hover:shadow-md transition-shadow">
+              <div class="card rounded-xl p-4">
                 <div class="flex flex-col sm:flex-row items-start gap-3">
                   <img :src="item.avatar" @error="$el.style.visibility='hidden'"
                     class="w-12 h-12 rounded-lg object-cover shrink-0 bg-gray-200">
@@ -199,7 +269,7 @@
                     <p x-show="item.remark" class="text-xs text-indigo-500 mt-0.5">📝 备注：<span x-text="item.remark"></span></p>
                     <div x-show="item.prevRejectReason" class="text-xs mt-1 py-1 px-2 bg-red-50 border border-red-100 rounded text-red-700">上次拒绝：<span x-text="item.prevRejectReason"></span></div>
                   </div>
-                  <div class="flex gap-2 shrink-0 self-end sm:self-start mt-2 sm:mt-0">
+                  <div class="flex flex-col sm:flex-row gap-2 shrink-0 self-end sm:self-start mt-2 sm:mt-0 w-full sm:w-auto">
                     <button x-show="tab==='pending'" @click="review(item.id,'approve')" :disabled="processingId===item.id"
                       class="btn bg-teal-600 text-white px-4 py-2 rounded-lg text-sm"><span x-show="processingId!==item.id">通过</span><span x-show="processingId===item.id" class="inline-block animate-spin">⏳</span></button>
                     <button x-show="tab==='pending'" @click="reviewReject(item.id)" :disabled="processingId===item.id"
@@ -228,7 +298,7 @@
         </div>
 
         <!-- === RSS 状态 === -->
-        <div x-show="tab==='rss'">
+        <div x-show="tab==='rss'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">📡 RSS 聚合状态</h2>
           <div class="card rounded-xl p-6 space-y-4">
             <div class="grid grid-cols-2 gap-4">
@@ -257,7 +327,7 @@
         </div>
 
         <!-- === 邮件配置 === -->
-        <div x-show="tab==='email'">
+        <div x-show="tab==='email'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">✉️ 邮件配置</h2>
           <div class="card rounded-xl p-6">
             <p class="text-sm text-[#4a4a5a] mb-4">发送审核通知邮件。</p>
@@ -327,7 +397,7 @@
         </div>
 
         <!-- === 图床配置 === -->
-        <div x-show="tab==='tucang'">
+        <div x-show="tab==='tucang'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">图床</h2>
           <div class="card rounded-xl p-6">
             <p class="text-sm text-[#4a4a5a] mb-4">审核通过后自动将头像上传到 TuCang 图床，失败则保留原图。</p>
@@ -350,7 +420,7 @@
         </div>
 
         <!-- === AI 配置 === -->
-        <div x-show="tab==='ai'">
+        <div x-show="tab==='ai'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">🤖 DeepSeek AI 配置</h2>
           <div class="card rounded-xl p-6 max-w-md">
             <p class="text-sm text-[#4a4a5a] mb-4">用于申请页"一键导入"的 AI 兜底解析。注册 <a href="https://platform.deepseek.com" target="_blank" class="text-indigo-500 underline">DeepSeek</a> → API Keys → 创建 Key。</p>
@@ -369,7 +439,7 @@
         </div>
 
         <!-- === 修改密码 === -->
-        <div x-show="tab==='password'">
+        <div x-show="tab==='password'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">密码</h2>
           <div class="card rounded-xl p-6 max-w-md">
             <form @submit.prevent="changePwd" class="space-y-3">
@@ -393,7 +463,7 @@
         </div>
 
         <!-- === 修改用户名 === -->
-        <div x-show="tab==='username'">
+        <div x-show="tab==='username'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">用户名</h2>
           <div class="card rounded-xl p-6 max-w-md">
             <form @submit.prevent="changeUsername" class="space-y-3">
@@ -413,7 +483,7 @@
         </div>
 
         <!-- === 导入导出 === -->
-        <div x-show="tab==='backup'">
+        <div x-show="tab==='backup'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">💾 导入 / 导出</h2>
           <div class="card rounded-xl p-6 max-w-md space-y-4">
             <div>
@@ -431,7 +501,7 @@
         </div>
 
         <!-- === 建议反馈 === -->
-        <div x-show="tab==='feedback'">
+        <div x-show="tab==='feedback'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">反馈</h2>
           <div class="card rounded-xl p-6 max-w-lg">
             <p class="text-sm text-[#4a4a5a] mb-2">有任何建议或遇到问题？欢迎反馈：</p>
@@ -447,8 +517,8 @@
         </div>
 
         <!-- === 编辑弹窗 === -->
-        <div x-show="editModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" @click.self="editModal=false">
-          <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl" @click.stop>
+        <div x-show="editModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="editModal=false">
+          <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl" @click.stop>
             <h3 class="text-lg font-bold text-[#1a1a2e] mb-4">编辑友链</h3>
             <form @submit.prevent="saveEdit" class="space-y-3">
               <div>
@@ -471,9 +541,9 @@
                 <label class="block text-sm text-[#4a4a5a] mb-1">RSS（可选）</label>
                 <input x-model="editForm.rss" type="url" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300">
               </div>
-              <div class="flex gap-2 pt-2">
-                <button type="submit" :disabled="saving" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg">保存</button>
-                <button type="button" @click="editModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg">取消</button>
+              <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                <button type="submit" :disabled="saving" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg min-h-[44px]">保存</button>
+                <button type="button" @click="editModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg min-h-[44px]">取消</button>
               </div>
               <div x-show="editMsg" class="text-sm px-3 py-2 rounded-lg" :class="editOk?'bg-green-50 text-green-700':'bg-red-50 text-red-700'" x-text="editMsg"></div>
             </form>
@@ -481,8 +551,8 @@
         </div>
 
         <!-- === 改状态弹窗 === -->
-        <div x-show="statusModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" @click.self="statusModal=false">
-          <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" @click.stop>
+        <div x-show="statusModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="statusModal=false">
+          <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm w-full shadow-xl" @click.stop>
             <h3 class="text-lg font-bold text-[#1a1a2e] mb-2">更改审核状态</h3>
             <p class="text-sm text-[#4a4a5a] mb-4" x-text="'当前：' + statusItem?.title"></p>
             <div class="space-y-3">
@@ -506,16 +576,16 @@
               <label class="block text-sm text-[#4a4a5a] mb-1">拒绝理由</label>
               <textarea x-model="statusReason" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-300 resize-none" placeholder="选填"></textarea>
             </div>
-            <div class="flex gap-2 justify-end mt-4">
-              <button @click="statusModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm">取消</button>
-              <button @click="confirmChangeStatus" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm">确认更改</button>
+            <div class="flex flex-col sm:flex-row gap-2 justify-end mt-4">
+              <button @click="statusModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm min-h-[44px]">取消</button>
+              <button @click="confirmChangeStatus" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm min-h-[44px]">确认更改</button>
             </div>
           </div>
         </div>
 
         <!-- === 邮件通知弹窗 === -->
-        <div x-show="notifyModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" @click.self="notifyModal=false">
-          <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl" @click.stop>
+        <div x-show="notifyModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="notifyModal=false">
+          <div class="bg-white rounded-t-2xl sm:rounded-2xl p-8 sm:max-w-sm w-full text-center shadow-xl" @click.stop>
             <div class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -523,28 +593,28 @@
             </div>
             <h3 class="text-lg font-bold text-[#1a1a2e] mb-2">发送邮件通知？</h3>
             <p class="text-sm text-[#4a4a5a] mb-6">将此状态变更通知该申请人</p>
-            <div class="flex gap-3 justify-center">
-              <button @click="doChangeStatus(false)" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg text-sm">不发送</button>
-              <button @click="doChangeStatus(true)" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg text-sm">📨 发送</button>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+              <button @click="doChangeStatus(false)" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg text-sm min-h-[44px]">不发送</button>
+              <button @click="doChangeStatus(true)" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg text-sm min-h-[44px]">📨 发送</button>
             </div>
           </div>
         </div>
 
         <!-- === 拒绝理由弹窗 === -->
-        <div x-show="rejectModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" @click.self="rejectModal=false">
-          <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" @click.stop>
+        <div x-show="rejectModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="rejectModal=false">
+          <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm w-full shadow-xl" @click.stop>
             <h3 class="text-lg font-bold text-[#1a1a2e] mb-2">拒绝理由</h3>
             <p class="text-sm text-[#4a4a5a] mb-3">未填则默认「页面内容不符合申请要求」</p>
             <textarea x-model="rejectReasonForm" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-300 resize-none" placeholder="选填"></textarea>
-            <div class="flex gap-2 justify-end mt-4">
-              <button @click="rejectModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm">取消</button>
-              <button @click="doReject" class="btn bg-amber-600 text-white px-4 py-2 rounded-lg text-sm">确认拒绝</button>
+            <div class="flex flex-col sm:flex-row gap-2 justify-end mt-4">
+              <button @click="rejectModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm min-h-[44px]">取消</button>
+              <button @click="doReject" class="btn bg-amber-600 text-white px-4 py-2 rounded-lg text-sm min-h-[44px]">确认拒绝</button>
             </div>
           </div>
         </div>
 
         <!-- Toast -->
-        <div x-show="toast.show" x-transition class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-lg text-sm shadow-lg"
+        <div x-show="toast.show" x-transition class="toast-mobile fixed bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-6 z-[100] px-5 py-2.5 rounded-lg text-sm shadow-lg text-center sm:text-left"
           :class="toast.ok?'bg-emerald-600 text-white':'bg-red-600 text-white'" x-text="toast.msg"></div>
 
       </main>

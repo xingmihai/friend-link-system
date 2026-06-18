@@ -47,6 +47,7 @@
   /* Form input base */
   .input-warm {
     width: 100%;
+    min-height: 44px;
     padding: 0.7rem 1rem;
     background: #f9f8f6;
     border: 1.5px solid #e8e5df;
@@ -55,6 +56,7 @@
     color: #1a1a2e;
     transition: all 0.25s ease;
     outline: none;
+    touch-action: manipulation;
   }
   .input-warm::placeholder {
     color: #b0ada6;
@@ -70,6 +72,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-height: 44px;
     padding: 0.85rem 2rem;
     background: #5046e4;
     color: #ffffff;
@@ -81,6 +84,7 @@
     border: none;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(80, 70, 228, 0.18);
+    touch-action: manipulation;
   }
   .btn-warm:hover:not(:disabled) {
     background: #4038cc;
@@ -88,7 +92,7 @@
     box-shadow: 0 8px 24px rgba(80, 70, 228, 0.28);
   }
   .btn-warm:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.97);
     box-shadow: 0 2px 6px rgba(80, 70, 228, 0.15);
   }
   .btn-warm:disabled {
@@ -101,6 +105,7 @@
   .btn-accent-outline {
     display: inline-flex;
     align-items: center;
+    min-height: 44px;
     padding: 0.45rem 1.1rem;
     background: transparent;
     color: #5046e4;
@@ -110,11 +115,15 @@
     border: 1.5px solid #5046e4;
     cursor: pointer;
     transition: all 0.25s ease;
+    touch-action: manipulation;
   }
   .btn-accent-outline:hover:not(:disabled) {
     background: #5046e4;
     color: #ffffff;
     box-shadow: 0 4px 12px rgba(80, 70, 228, 0.2);
+  }
+  .btn-accent-outline:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .btn-accent-outline:disabled {
     opacity: 0.55;
@@ -159,6 +168,9 @@
   textarea::-webkit-scrollbar-track { background: transparent; }
   textarea::-webkit-scrollbar-thumb { background: #d4d0c8; border-radius: 3px; }
 
+  /* Mobile: prevent code/long tokens from breaking layout */
+  code { word-break: break-all; overflow-wrap: anywhere; }
+
   /* Divider */
   .hr-warm {
     border: none;
@@ -185,18 +197,18 @@
 <div x-data="app()" x-init="init()" x-cloak class="max-w-2xl mx-auto">
 
   <!-- Header -->
-  <header class="text-center mb-10">
+  <header class="text-center mb-6 md:mb-10">
     <div class="inline-flex items-center justify-center w-14 h-14 bg-accent-light rounded-2xl mb-4">
       <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
       </svg>
     </div>
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-[#1a1a2e] mb-2">友情链接</h1>
+    <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-[#1a1a2e] mb-2">友情链接</h1>
     <p class="text-sm tracking-widest uppercase text-[#9c9788]">Friend Links · 申请友链</p>
   </header>
 
   <!-- Main Card -->
-  <div class="card-warm p-8 md:p-10 mb-6">
+  <div class="card-warm py-5 px-4 md:py-8 md:px-8 mb-6">
 
     <!-- Import Section -->
     <div class="bg-warm rounded-xl p-5 mb-8 border border-[#e8e5df]">
@@ -212,15 +224,15 @@
       </div>
       <div x-show="showImport" x-transition class="space-y-3 mt-3">
         <p class="text-xs text-[#9c9788] leading-relaxed">粘贴对方发来的友链数据，自动解析填入表单。支持 YAML / JSON 格式。</p>
-        <textarea x-model="importText" rows="5"
-          class="input-warm resize-none text-sm"
+        <textarea x-model="importText" rows="6"
+          class="input-warm resize-none text-sm min-h-[130px]"
           placeholder="name: 笑的博客
 link: https://www.xiaow.qzz.io
 avatar: https://wp-cdn.4ce.cn/v2/TVFIv5x.jpeg
 descr: 随性收拢生活散落的笑意
 rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
         <div class="flex gap-2">
-          <button type="button" @click="doSmartParse" :disabled="parsing" class="btn-accent-outline">
+          <button type="button" @click="doSmartParse" :disabled="parsing" class="btn-accent-outline w-full md:w-auto">
             <span x-show="!parsing">🤖 智能解析</span><span x-show="parsing">解析中…</span>
           </button>
         </div>
@@ -248,11 +260,11 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
             网站头像 URL <span class="tag-warm tag-required">必填</span>
             <span class="text-xs text-[#b0ada6] font-normal ml-1">（建议使用快速图床）</span>
           </label>
-          <div class="flex gap-3">
+          <div class="flex flex-col md:flex-row gap-3">
             <input x-model="form.avatar" type="url" required
-              class="input-warm flex-1"
+              class="input-warm md:flex-1"
               placeholder="https://...">
-            <div class="w-12 h-12 border-2 border-[#e8e5df] rounded-xl overflow-hidden bg-warm flex-shrink-0">
+            <div class="w-16 h-16 md:w-12 md:h-12 border-2 border-[#e8e5df] rounded-xl overflow-hidden bg-warm flex-shrink-0 mt-3 md:mt-0">
               <img :src="form.avatar || ''" @error="$event.target.style.display='none'" @load="$event.target.style.display='block'"
                 class="w-full h-full object-cover" alt="">
             </div>
@@ -374,8 +386,8 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
 
   <!-- 邮箱确认弹窗 -->
   <div x-show="showEmailConfirm" x-transition.opacity
-    class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" @click.self="showEmailConfirm=false">
-    <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl border border-[#e8e5df]" @click.stop>
+    class="fixed inset-0 modal-overlay flex items-end md:items-center justify-center p-0 md:p-4 z-50" @click.self="showEmailConfirm=false">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl p-6 md:p-8 w-full md:max-w-sm text-center shadow-2xl border border-[#e8e5df]" @click.stop>
       <div class="w-16 h-16 bg-accent-light rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -384,16 +396,16 @@ rss: https://blog.xiaow.qzz.io/rss.xml"></textarea>
       <h3 class="text-xl font-bold text-[#1a1a2e] mb-2">未填写邮箱</h3>
       <p class="text-[#5c5c6e] text-sm mb-2 leading-relaxed">填了邮箱可以收到审核结果通知，<br>确定跳过直接提交吗？</p>
       <div class="flex gap-3 justify-center mt-6">
-        <button @click="showEmailConfirm=false" class="px-5 py-2.5 rounded-lg text-sm font-medium bg-warm text-[#5c5c6e] hover:bg-[#e8e5df] transition-colors">继续填写</button>
-        <button @click="doSubmit()" class="px-5 py-2.5 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-hover transition-colors shadow-sm">直接提交</button>
+        <button @click="showEmailConfirm=false" class="px-5 py-2.5 min-h-[44px] rounded-lg text-sm font-medium bg-warm text-[#5c5c6e] hover:bg-[#e8e5df] transition-colors touch-manipulation active:scale-[0.97]">继续填写</button>
+        <button @click="doSubmit()" class="px-5 py-2.5 min-h-[44px] rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-hover transition-colors shadow-sm touch-manipulation active:scale-[0.97]">直接提交</button>
       </div>
     </div>
   </div>
 
   <!-- Success Modal -->
   <div x-show="success" x-transition.opacity
-    class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" @click.self="success=false">
-    <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center border border-[#e8e5df]" @click.stop>
+    class="fixed inset-0 modal-overlay flex items-end md:items-center justify-center p-0 md:p-4 z-50" @click.self="success=false">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl p-6 md:p-8 w-full md:max-w-sm text-center border border-[#e8e5df]" @click.stop>
       <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
