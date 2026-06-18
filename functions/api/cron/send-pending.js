@@ -1,6 +1,6 @@
 // functions/api/cron/send-pending.js
 // 扫描邮件队列，逐封发送——带锁防并发、批次限制、失败重试
-import { sendEmail } from '../_utils.js';
+import { sendEmail, incrEmailCounter } from '../_utils.js';
 
 const MAX_BATCH = 10;   // 单次 cron 最多发 N 封
 const MAX_RETRIES = 3;  // 单封邮件最大重试次数
@@ -42,6 +42,7 @@ export async function onRequestGet({ request, env }) {
       try {
         await sendEmail(env, entry.subject, entry.html, entry.to || undefined);
         await env.LINKS.delete(k.name);
+        if (entry.to) await incrEmailCounter(env, entry.to); // 递增计数
         sent++;
       } catch (e) {
         console.error(`[send-pending] ${k.name}:`, e.message);

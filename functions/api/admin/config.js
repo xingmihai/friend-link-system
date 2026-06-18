@@ -44,7 +44,8 @@ export async function onRequestPost({ request, env }) {
       apiKey: data.apiKey.trim(),
       from: data.from.trim(),
       fromName: (data.fromName || '').trim(),
-      to: data.to.trim()
+      to: data.to.trim(),
+      notifyMode: data.notifyMode || 'every'
     }));
     return ok({ message: '邮件配置已保存' });
   }

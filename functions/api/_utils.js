@@ -200,21 +200,40 @@ export function escapeHtml(s) {
 // 邮件入队——秒存 KV，由 cron job 异步发送
 export async function queueEmail(env, subject, html, to) {
   const raw = await env.LINKS.get('config:email');
-  if (!raw) return; // 未配邮件则跳过
+  if (!raw) return;
   const cfg = JSON.parse(raw);
-  if (!cfg.to && !to) return; // 没收件人就不发
+  const recipient = to || cfg.to;
+  if (!recipient) return;
 
-  // SMTP + 非异步：直接同步发送（简单稳定）
+  // 黑名单检查
+  const bl = await env.LINKS.get(`email-blacklist:${recipient}`);
+  if (bl && parseInt(bl, 10) >= 3) return;
+
+  // SMTP + 非异步：直接同步发送
   if (cfg.provider === 'smtp') {
     const smtpCfg = JSON.parse(await env.LINKS.get('config:smtp') || 'null');
     if (smtpCfg && smtpCfg.asyncSmtp !== true) {
-      return sendEmail(env, subject, html, to || cfg.to).catch(e => console.error('SMTP直发失败:', e.message));
+      return sendEmail(env, subject, html, recipient)
+        .then(() => incrEmailCounter(env, recipient))
+        .catch(e => console.error('SMTP直发失败:', e.message));
     }
   }
 
   // 异步入队
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
   await env.LINKS.put(key, JSON.stringify({ subject, html, to: to || '', createdAt: Date.now() }));
+}
+
+// 发送成功后递增黑名单计数（3次拉黑）
+export async function incrEmailCounter(env, email) {
+  if (!email) return;
+  const n = (parseInt(await env.LINKS.get(`email-blacklist:${email}`) || '0') || 0) + 1;
+  await env.LINKS.put(`email-blacklist:${email}`, String(n));
+}
+
+// 重置黑名单计数
+export async function resetEmailCounter(env, email) {
+  await env.LINKS.delete(`email-blacklist:${email}`);
 }
 
 // 立即触发队列发送（带 8 秒超时，防 SMTP 拖死请求）

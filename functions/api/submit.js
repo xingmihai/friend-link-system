@@ -58,6 +58,9 @@ export async function onRequestPost({ request, env }) {
   // 通知管理员（队列异步发送）
   const emailCfg = await env.LINKS.get('config:email');
   if (emailCfg) {
+    const cfg = JSON.parse(emailCfg);
+    const shouldNotify = cfg.notifyMode === 'fromZero' ? pending.length === 1 : true;
+    if (shouldNotify) {
     const adminUrl = new URL(request.url).origin + '/admin';
     const content = `
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
@@ -77,6 +80,7 @@ export async function onRequestPost({ request, env }) {
     await queueEmail(env, `【新友链申请】${record.title}`,
       buildEmailHtml('📩 新友链申请', content, '前往审核', adminUrl));
     await flushEmailQueue(request, env);
+    }
   }
 
   return ok({ id, message: '申请已提交，请等待审核' });
