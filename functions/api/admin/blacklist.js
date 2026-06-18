@@ -17,17 +17,19 @@ export async function onRequestPost({ request, env }) {
   const { action, email } = body;
 
   if (action === 'list') {
-    const result = [];
-    const list = await env.LINKS.list({ prefix: 'email-blacklist:' });
-    for (const key of list.keys) {
-      const count = await env.LINKS.get(key.name);
-      result.push({ email: key.name.replace('email-blacklist:', ''), blocked: parseInt(count) >= 3, count: parseInt(count) });
-    }
-    return ok({ list: result });
+    const raw = await env.LINKS.get('email-blacklist') || '{}';
+    const bl = JSON.parse(raw);
+    const list = Object.entries(bl)
+      .filter(([, count]) => count >= 3)
+      .map(([email, count]) => ({ email, blocked: true, count }));
+    return ok({ list });
   }
 
   if (action === 'reset' && email) {
-    await env.LINKS.delete(`email-blacklist:${email}`);
+    const raw = await env.LINKS.get('email-blacklist') || '{}';
+    const bl = JSON.parse(raw);
+    delete bl[email];
+    await env.LINKS.put('email-blacklist', JSON.stringify(bl));
     return ok({ message: `已解除 ${email} 的黑名单` });
   }
 

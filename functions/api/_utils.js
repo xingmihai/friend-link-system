@@ -209,9 +209,10 @@ export async function queueEmail(env, subject, html, to) {
   const recipient = to || cfg.to;
   if (!recipient) return;
 
-  // 黑名单检查
-  const bl = await env.LINKS.get(`email-blacklist:${recipient}`);
-  if (bl && parseInt(bl, 10) >= 3) return;
+  // 黑名单检查（3次失败拉黑，统一存一个 JSON 对象）
+  const blRaw = await env.LINKS.get('email-blacklist') || '{}';
+  const bl = JSON.parse(blRaw);
+  if ((bl[recipient] || 0) >= 3) return;
 
   // 入队 KV
   const key = `email-queue:${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
@@ -243,13 +244,19 @@ export async function queueEmail(env, subject, html, to) {
 // 发送成功后递增黑名单计数（3次拉黑）
 export async function incrEmailCounter(env, email) {
   if (!email) return;
-  const n = (parseInt(await env.LINKS.get(`email-blacklist:${email}`) || '0') || 0) + 1;
-  await env.LINKS.put(`email-blacklist:${email}`, String(n));
+  const raw = await env.LINKS.get('email-blacklist') || '{}';
+  const bl = JSON.parse(raw);
+  bl[email] = (bl[email] || 0) + 1;
+  await env.LINKS.put('email-blacklist', JSON.stringify(bl));
 }
 
 // 重置黑名单计数
 export async function resetEmailCounter(env, email) {
-  await env.LINKS.delete(`email-blacklist:${email}`);
+  if (!email) return;
+  const raw = await env.LINKS.get('email-blacklist') || '{}';
+  const bl = JSON.parse(raw);
+  delete bl[email];
+  await env.LINKS.put('email-blacklist', JSON.stringify(bl));
 }
 
 // 立即触发队列发送（带 8 秒超时，防 SMTP 拖死请求）
