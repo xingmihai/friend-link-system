@@ -139,31 +139,24 @@ export function buildEmailHtml(title, content, btnText, btnUrl) {
   const isRejected = title.includes('未通过') || title.includes('屏蔽');
   const statusColor = isApproved ? '#16a34a' : isRejected ? '#dc2626' : '#4f46e5';
   return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="color-scheme" content="light only">
-<meta name="supported-color-schemes" content="light only">
-<meta name="x-apple-disable-message-reformatting">
-<meta name="format-detection" content="telephone=no">
-<title>友链通知</title>
+<html>
+<head><meta charset="UTF-8"><title>友链通知</title>
+<style>body{color-scheme:only light}</style>
 </head>
-<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" style="margin:0;padding:0;background-color:#ffffff;background:#ffffff">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff">
-  <tr><td align="center" bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;padding:20px 10px">
-    <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;border:1px solid #eeeeee;border-radius:8px">
-      <!-- 头部 -->
-      <tr><td bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;padding:24px;text-align:center;border-bottom:1px solid #f0f0f0">
-        <font color="#1a1a1a" size="4" face="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif" style="color:#1a1a1a"><b>${title}</b></font>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" bgcolor="#ffffff" text="#333333">
+<img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" width="1" height="1" style="display:block">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff">
+  <tr><td align="center" bgcolor="#ffffff" style="padding:20px 10px">
+    <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border:1px solid #eeeeee;border-radius:8px">
+      <tr><td bgcolor="#ffffff" style="padding:24px;text-align:center;border-bottom:1px solid #f0f0f0">
+        <font size="4" face="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif"><b>${title}</b></font>
       </td></tr>
-      <!-- 正文 -->
-      <tr><td bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;padding:24px;font-size:15px">
-        <font color="#333333" face="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif" style="color:#333333">${content}</font>
-        ${btnText && btnUrl ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;text-align:center;margin:30px 0"><tr><td bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;text-align:center;padding:0"><a href="${btnUrl}" target="_blank" style="display:inline-block;background-color:#5046e4;background:#5046e4;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:500"><font color="#ffffff" style="color:#ffffff">${btnText}</font></a></td></tr></table>` : ''}
+      <tr><td bgcolor="#ffffff" style="padding:24px;font-size:15px">
+        ${content}
+        ${btnText && btnUrl ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff"><tr><td align="center" bgcolor="#ffffff" style="padding-top:24px"><a href="${btnUrl}" target="_blank" style="display:inline-block;padding:12px 28px;border-radius:6px;font-weight:500;background-color:#5046e4;color:#ffffff;text-decoration:none"><font color="#ffffff">${btnText}</font></a></td></tr></table>` : ''}
       </td></tr>
-      <!-- 页脚 -->
-      <tr><td bgcolor="#ffffff" style="background-color:#ffffff;background:#ffffff;padding:20px 24px;text-align:center;border-top:1px solid #f0f0f0;font-size:13px">
-        <font color="#888888" style="color:#888888">此为系统自动发送的邮件，请勿直接回复。</font>
+      <tr><td bgcolor="#ffffff" style="padding:20px 24px;text-align:center;border-top:1px solid #f0f0f0;font-size:13px">
+        <font color="#888888">此为系统自动发送的邮件，请勿直接回复。</font>
       </td></tr>
     </table>
   </td></tr>
