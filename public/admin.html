@@ -542,20 +542,22 @@ init({
         <div x-show="tab==='blacklist'" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4">🚫 黑名单</h2>
           <div class="card rounded-xl p-6 max-w-lg">
-            <p class="text-sm text-[#4a4a5a] mb-3">每个申请人邮箱最多收 3 封邮件（管理员收件邮箱除外），超限自动不再发送。</p>
+            <p class="text-sm text-[#4a4a5a] mb-3">每个申请人邮箱最多收 3 封邮件，管理员邮箱除外。显示所有发送记录，便于提前干预。</p>
             <button @click="loadBlacklist" :disabled="blLoading" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm mb-4">
               <span x-show="!blLoading">🔄 刷新</span><span x-show="blLoading">加载中…</span>
             </button>
             <div x-show="blError" class="text-red-600 text-sm mb-3" x-text="blError"></div>
-            <div x-show="blacklist.length===0 && !blLoading" class="text-sm text-gray-400">暂无黑名单记录</div>
+            <div x-show="blacklist.length===0 && !blLoading" class="text-sm text-gray-400">暂无发送记录</div>
             <template x-for="b in blacklist" :key="b.email">
-              <div class="flex items-center justify-between bg-red-50 border border-red-100 rounded-lg px-4 py-3 mb-2">
+              <div class="flex items-center justify-between rounded-lg px-4 py-3 mb-2"
+                :class="b.blocked ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100'">
                 <div class="flex-1 min-w-0">
                   <span class="text-sm font-medium text-[#1a1a2e] break-all" x-text="b.email"></span>
-                  <span class="text-xs text-red-500 ml-2" x-text="'失败 ' + b.count + ' 次'"></span>
+                  <span class="text-xs ml-2" :class="b.blocked ? 'text-red-500' : 'text-gray-400'" x-text="b.count + '/' + 3 + ' 次'"></span>
                 </div>
                 <button @click="resetBlacklist(b.email)" :disabled="blLoading"
-                  class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ml-3 touch-manipulation active:scale-[0.97]">解除</button>
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ml-3 touch-manipulation active:scale-[0.97]"
+                  :class="b.blocked ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">重置</button>
               </div>
             </template>
           </div>
