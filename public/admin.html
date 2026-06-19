@@ -707,7 +707,7 @@ function admin() {
     loggedIn: false, mustChangePwd: false, user: '',
     loginForm: { user: 'admin', pass: '' }, loggingIn: false, loginError: '',
     tab: 'pending', sidebarOpen: (typeof window !== 'undefined' && window.innerWidth >= 1024),
-    list: [], counts: { pending: 0, approved: 0, rejected: 0 }, loading: false,
+    list: [], counts: { pending: 0, approved: 0, rejected: 0 }, loading: false, _loadingTab: '', cachedList: { pending: null, approved: null, rejected: null },
     // RSS
     rssStatus: { cursor: 0, lastUpdate: null, currentFeeds: [], articleCount: 0 }, refreshing: false,
     // 配置
@@ -812,7 +812,10 @@ function admin() {
     switchTab(t) {
       this.tab = t;
       if (window.innerWidth < 1024) this.sidebarOpen = false;
-      if (['pending', 'approved', 'rejected'].includes(t)) this.loadList(t);
+      if (['pending', 'approved', 'rejected'].includes(t)) {
+        if (!this.cachedList[t]) this.loadList(t, true);
+        else this.list = this.cachedList[t];
+      }
       else if (t === 'rss') { this.loadConfig(); this.loadRssStatus(); }
       else if (t === 'email' || t === 'tucang' || t === 'ai') this.loadConfig();
       else if (t === 'blacklist') this.loadBlacklist();
@@ -828,14 +831,18 @@ function admin() {
       }
     },
 
-    async loadList(status) {
+    async loadList(status, forceRefresh = false) {
+      // 走缓存：已缓存且不强制刷新则直接展示
+      if (this.cachedList[status] && !forceRefresh) { this.list = this.cachedList[status]; return; }
       this.loading = true;
+      this._loadingTab = status;
       try {
         const r = await this.api(`/api/admin/list?status=${status}`);
         if (r.status === 401) { localStorage.removeItem('admin_token'); this.loggedIn = false; this.loginError = '会话已过期，请重新登录'; return; }
         const d = await r.json();
-        this.list = d.data?.list || [];
-      } catch { this.showToast('加载失败', false); } finally { this.loading = false; }
+        // 防竞态：只有当前 tab 还是请求时的 status 才更新
+        if (this._loadingTab === status) { this.cachedList[status] = d.data?.list || []; this.list = this.cachedList[status]; }
+      } catch { this.showToast('加载失败', false); } finally { if (this._loadingTab === status) this.loading = false; }
     },
 
     showToast(msg, ok = true) {
@@ -852,7 +859,7 @@ function admin() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, id })
         });
-        if (r.ok) { await this.loadList(this.tab); await this.loadCounts(); this.showToast('操作成功'); }
+        if (r.ok) { this.cachedList = { pending: null, approved: null, rejected: null }; await this.loadList(this.tab, true); await this.loadCounts(); this.showToast('操作成功'); }
         else { const d = await r.json(); this.showToast(d.error || '操作失败', false); }
       } catch { this.showToast('操作失败', false); }
       this.processingId = null;
@@ -870,7 +877,7 @@ function admin() {
         });
         this.rejectModal = false;
         this.rejectSubmitting = false;
-        if (r.ok) { await this.loadList(this.tab); await this.loadCounts(); this.showToast('已拒绝'); }
+        if (r.ok) { this.cachedList = { pending: null, approved: null, rejected: null }; await this.loadList(this.tab, true); await this.loadCounts(); this.showToast('已拒绝'); }
         else { const d = await r.json(); this.showToast(d.error || '操作失败', false); }
       } catch { this.rejectModal = false; this.rejectSubmitting = false; this.showToast('操作失败', false); }
     },
@@ -921,7 +928,7 @@ function admin() {
         this.notifyModal = false;
         this.csSubmitting = false;
         const d = await r.json();
-        if (r.ok) { await this.loadList(this.tab); await this.loadCounts(); this.showToast('已变更'); }
+        if (r.ok) { this.cachedList = { pending: null, approved: null, rejected: null }; await this.loadList(this.tab, true); await this.loadCounts(); this.showToast('已变更'); }
         else { this.showToast(d.error || '操作失败', false); }
       } catch { this.statusModal = false; this.notifyModal = false; this.csSubmitting = false; this.showToast('操作失败', false); }
     },
@@ -956,7 +963,7 @@ function admin() {
         const d = await r.json();
         if (r.ok) {
           this.editOk = true; this.editMsg = '✅ 已更新';
-          setTimeout(() => { this.editModal = false; this.loadList(this.tab); }, 800);
+          setTimeout(() => { this.editModal = false; this.cachedList = { pending: null, approved: null, rejected: null }; this.loadList(this.tab, true); }, 800);
         } else {
           this.editMsg = '❌ ' + d.error;
         }
