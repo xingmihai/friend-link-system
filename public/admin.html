@@ -310,8 +310,10 @@ init({
                     <button @click="deleteItem(item.id)"
                       x-show="tab==='rejected'"
                       class="btn px-3 py-2 rounded-lg text-sm font-medium"
-                      :class="confirmDelete===item.id?'bg-red-600 text-white':'bg-gray-500 text-white'"
-                      x-text="confirmDelete===item.id?'确认删除':'删除'"></button>
+                      :class="processingId===item.id?'bg-red-600 text-white':confirmDelete===item.id?'bg-red-600 text-white':'bg-gray-500 text-white'"
+                      :disabled="processingId===item.id">
+                      <span x-show="processingId===item.id" class="inline-block animate-spin">⏳</span>
+                      <span x-show="processingId!==item.id" x-text="confirmDelete===item.id?'确认删除':'删除'"></span></button>
                   </div>
                 </div>
               </div>
@@ -646,7 +648,9 @@ init({
             </div>
             <div class="flex flex-col sm:flex-row gap-2 justify-end mt-4">
               <button @click="statusModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm min-h-[44px]">取消</button>
-              <button @click="confirmChangeStatus" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm min-h-[44px]">确认更改</button>
+              <button @click="confirmChangeStatus" :disabled="csSubmitting" class="btn bg-[#5046e4] text-white px-4 py-2 rounded-lg text-sm min-h-[44px]">
+                <span x-show="!csSubmitting">确认更改</span><span x-show="csSubmitting">处理中…</span>
+              </button>
             </div>
           </div>
         </div>
@@ -662,8 +666,12 @@ init({
             <h3 class="text-lg font-bold text-[#1a1a2e] mb-2">发送邮件通知？</h3>
             <p class="text-sm text-[#4a4a5a] mb-6">将此状态变更通知该申请人</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center">
-              <button @click="doChangeStatus(false)" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg text-sm min-h-[44px]">不发送</button>
-              <button @click="doChangeStatus(true)" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg text-sm min-h-[44px]">📨 发送</button>
+              <button @click="doChangeStatus(false)" :disabled="csSubmitting" class="btn bg-gray-100 text-[#1a1a2e] px-5 py-2 rounded-lg text-sm min-h-[44px]">
+                <span x-show="!csSubmitting">不发送</span><span x-show="csSubmitting">处理中…</span>
+              </button>
+              <button @click="doChangeStatus(true)" :disabled="csSubmitting" class="btn bg-[#5046e4] text-white px-5 py-2 rounded-lg text-sm min-h-[44px]">
+                <span x-show="!csSubmitting">📨 发送</span><span x-show="csSubmitting">处理中…</span>
+              </button>
             </div>
           </div>
         </div>
@@ -720,7 +728,7 @@ function admin() {
     rssCfg: { cacheSize: 20 }, rssMsg: '', rssOk: false,
     editModal: false, editForm: { id: '', title: '', avatar: '', link: '', descr: '', rss: '' },
     editMsg: '', editOk: false, confirmDelete: null, processingId: null,
-    statusModal: false, statusItem: null, statusNew: 'approved', statusReason: '',
+    statusModal: false, statusItem: null, statusNew: 'approved', statusReason: '', csSubmitting: false,
     notifyModal: false, notifyId: '',
     rejectModal: false, rejectId: '', rejectReasonForm: '', rejectSubmitting: false,
     toast: { show: false, msg: '', ok: false }, _toastTimer: null,
@@ -896,30 +904,26 @@ function admin() {
 
     confirmChangeStatus() {
       this.notifyId = this.statusItem.id;
-      this.statusModal = false;
       // 已通过→待审核：直接执行，不弹通知
       if (this.statusNew === 'pending') { this.doChangeStatus(false); return; }
       this.notifyModal = true;
     },
 
     async doChangeStatus(notify) {
-      this.notifyModal = false;
+      this.csSubmitting = true;
       try {
         const r = await this.api('/api/admin/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'changeStatus',
-            id: this.notifyId,
-            newStatus: this.statusNew,
-            reason: this.statusReason,
-            notify
-          })
+          body: JSON.stringify({ action: 'changeStatus', id: this.notifyId, newStatus: this.statusNew, reason: this.statusReason, notify })
         });
+        this.statusModal = false;
+        this.notifyModal = false;
+        this.csSubmitting = false;
         const d = await r.json();
         if (r.ok) { await this.loadList(this.tab); await this.loadCounts(); this.showToast('已变更'); }
-        else { const d = await r.json(); this.showToast(d.error || '操作失败', false); }
-      } catch { this.showToast('操作失败', false); }
+        else { this.showToast(d.error || '操作失败', false); }
+      } catch { this.statusModal = false; this.notifyModal = false; this.csSubmitting = false; this.showToast('操作失败', false); }
     },
 
     openEdit(item) {
