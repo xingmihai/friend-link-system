@@ -163,8 +163,6 @@ export function buildEmailHtml(title, content, btnText, btnUrl) {
 </table>
 </body>
 </html>`;
-</body>
-</html>`;
 }
 
 export function escapeHtml(s) {
