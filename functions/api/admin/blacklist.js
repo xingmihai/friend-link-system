@@ -39,7 +39,15 @@ export async function onRequestPost({ request, env }) {
     return ok({ message: `已解除 ${email} 的黑名单` });
   }
 
-  return err('缺少 action 参数 (list/reset)');
+  if (action === 'block' && email) {
+    const raw = await env.LINKS.get('email-blacklist') || '{}';
+    const bl = JSON.parse(raw);
+    bl[email] = 3; // 直接拉满 3 次
+    await env.LINKS.put('email-blacklist', JSON.stringify(bl));
+    return ok({ message: `已拉黑 ${email}` });
+  }
+
+  return err('缺少 action 参数 (list/reset/block)');
 }
 
 export async function onRequestOptions() { return new Response(null, { status: 204 }); }
