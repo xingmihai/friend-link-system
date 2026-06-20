@@ -141,8 +141,16 @@ init({
 
 <div x-data="admin()" x-init="init()" x-cloak>
 
+  <!-- 检查登录状态中 -->
+  <div x-show="authChecking" class="min-h-screen flex items-center justify-center p-4">
+    <div class="text-center">
+      <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+      <div class="text-[#4a4a5a] text-sm">检查登录状态…</div>
+    </div>
+  </div>
+
   <!-- ========== LOGIN ========== -->
-  <div x-show="!loggedIn" class="min-h-screen flex items-center justify-center p-4">
+  <div x-show="!loggedIn && !authChecking" class="min-h-screen flex items-center justify-center p-4">
     <div class="card rounded-2xl p-8 w-full max-w-sm slide-in shadow-lg">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-indigo-500 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-sm">
@@ -703,7 +711,7 @@ init({
 function admin() {
   return {
     // 基础状态
-    loggedIn: false, mustChangePwd: false, user: '',
+    loggedIn: false, authChecking: true, mustChangePwd: false, user: '',
     loginForm: { user: 'admin', pass: '' }, loggingIn: false, loginError: '',
     tab: 'pending', sidebarOpen: (typeof window !== 'undefined' && window.innerWidth >= 1024),
     list: [], counts: { pending: 0, approved: 0, rejected: 0 }, loading: false, _loadingTab: '', cachedList: { pending: null, approved: null, rejected: null },
@@ -756,7 +764,7 @@ function admin() {
 
     async checkAuth() {
       const t = localStorage.getItem('admin_token');
-      if (!t) return;
+      if (!t) { this.authChecking = false; return; }
       try {
         const r = await fetch('/api/admin/list?status=pending', {
           credentials: 'include', headers: { ...this.authHeaders() }
@@ -771,6 +779,7 @@ function admin() {
           this.loginError = '会话已过期，请重新登录';
         }
       } catch {}
+      this.authChecking = false;
     },
 
     api(path, opts = {}) {
