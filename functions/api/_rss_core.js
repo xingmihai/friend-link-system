@@ -12,12 +12,7 @@ function toCST(ts) {
 
 // 默认源（申请友链无 RSS 时使用这些兜底）
 const DEFAULT_FEEDS = [
-  'https://www.wsyblog.cn/rss.xml',
-  'https://www.vvhan.com/rss.xml',
-  'https://blog.lusyoe.com/rss/feed.xml',
-  'https://www.biibii.cn/feed',
-  'https://www.20010501.xyz/rss.xml',
-  'https://blog.lvjianqing.xyz/rss.xml'
+  'https://blog.xiaow.qzz.io/rss.xml'
 ];
 
 /**
