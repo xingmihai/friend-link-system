@@ -255,7 +255,7 @@ export async function resetEmailCounter(env, email) {
   await env.LINKS.put('email-blacklist', JSON.stringify(bl));
 }
 
-// 立即触发队列发送（带 8 秒超时，防 SMTP 拖死请求）
+// 立即触发队列发送
 export async function flushEmailQueue(request, env) {
   const url = new URL('/api/cron/send-pending', request.url);
   url.searchParams.set('secret', env.CRON_SECRET || '');

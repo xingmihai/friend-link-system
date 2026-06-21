@@ -278,10 +278,28 @@ init({
         <!-- === 列表区域 === -->
         <div x-show="['pending','approved','rejected'].includes(tab)" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4" x-text="tabTitle"></h2>
+          <!-- 批量操作栏 -->
+          <div x-show="tab==='pending'||tab==='rejected'" class="flex items-center gap-2 mb-3 flex-wrap">
+            <label class="flex items-center gap-1 text-sm text-[#4a4a5a] cursor-pointer select-none">
+              <input type="checkbox" @change="toggleSelectAll()" :checked="selectedIds.length===list.length&&list.length>0" class="w-4 h-4 accent-[#5046e4]">
+              全选（<span x-text="selectedIds.length"></span>）
+            </label>
+            <template x-if="tab==='pending'">
+              <button @click="confirmBatch('approve')" :disabled="!selectedIds.length" class="btn bg-teal-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量通过</button>
+            </template>
+            <template x-if="tab==='pending'">
+              <button @click="confirmBatch('reject')" :disabled="!selectedIds.length" class="btn bg-amber-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量拒绝</button>
+            </template>
+            <template x-if="tab==='rejected'">
+              <button @click="confirmBatch('delete')" :disabled="!selectedIds.length" class="btn bg-red-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量删除</button>
+            </template>
+          </div>
           <div class="space-y-3">
             <template x-for="item in list" :key="item.id">
               <div class="card rounded-xl p-4">
-                <div class="flex flex-col sm:flex-row items-start gap-3">
+                <div class="flex gap-3">
+                  <input type="checkbox" @change="toggleSelect(item.id)" :checked="isSelected(item.id)" class="w-4 h-4 mt-1 accent-[#5046e4] shrink-0" x-show="tab==='pending'||tab==='rejected'">
+                  <div class="flex flex-col sm:flex-row items-start gap-3 flex-1 min-w-0">
                   <img :src="item.avatar" @error="$el.style.visibility='hidden'"
                     class="w-12 h-12 rounded-lg object-cover shrink-0 bg-gray-200">
                   <div class="flex-1 min-w-0 w-full">
@@ -683,6 +701,28 @@ init({
           </div>
         </div>
 
+        <!-- === 批量处理确认 === -->
+        <div x-show="batchModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="batchModal=false">
+          <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm w-full shadow-xl" @click.stop>
+            <h3 class="text-lg font-bold text-[#1a1a2e] mb-2">
+              <span x-show="batchAction==='approve'">批量通过</span>
+              <span x-show="batchAction==='reject'">批量拒绝</span>
+              <span x-show="batchAction==='delete'">批量删除</span>
+            </h3>
+            <p class="text-sm text-[#4a4a5a] mb-3">已选中 <b x-text="selectedIds.length"></b> 项，确定执行？</p>
+            <div x-show="batchAction==='reject'" class="mb-3">
+              <input x-model="batchReason" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="拒绝原因（选填）">
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 justify-end mt-4">
+              <button @click="batchModal=false" class="btn bg-gray-100 text-[#1a1a2e] px-4 py-2 rounded-lg text-sm min-h-[44px]">取消</button>
+              <button @click="doBatch()" :disabled="batchProcessing"
+                class="btn text-white px-4 py-2 rounded-lg text-sm min-h-[44px]"
+                :class="batchAction==='delete'?'bg-red-600':batchAction==='reject'?'bg-amber-600':'bg-teal-600'">
+                <span x-show="!batchProcessing">确定</span><span x-show="batchProcessing" class="inline-block animate-spin">⏳</span></button>
+            </div>
+          </div>
+        </div>
+
         <!-- === 拒绝理由弹窗 === -->
         <div x-show="rejectModal" x-transition.opacity class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50" @click.self="rejectModal=false">
           <div class="bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm w-full shadow-xl" @click.stop>
@@ -715,6 +755,8 @@ function admin() {
     loginForm: { user: 'admin', pass: '' }, loggingIn: false, loginError: '',
     tab: 'pending', sidebarOpen: (typeof window !== 'undefined' && window.innerWidth >= 1024),
     list: [], counts: { pending: 0, approved: 0, rejected: 0 }, loading: false, _loadingTab: '', cachedList: { pending: null, approved: null, rejected: null },
+    // 批量操作
+    selectedIds: [], batchAction: '', batchModal: false, batchReason: '', batchProcessing: false,
     // RSS
     rssStatus: { cursor: 0, lastUpdate: null, currentFeeds: [], articleCount: 0 }, refreshing: false,
     // 配置
@@ -898,7 +940,6 @@ function admin() {
 
     deleteItem(id) {
       if (this.confirmDelete === id) {
-        // 第二次点击 → 真的删除
         this.confirmDelete = null;
         this.review(id, 'delete');
       } else {
@@ -908,6 +949,25 @@ function admin() {
         clearTimeout(this._deleteTimer);
         this._deleteTimer = setTimeout(() => { this.confirmDelete = null; }, 3000);
       }
+    },
+
+    // 批量操作
+    toggleSelect(id) { const i = this.selectedIds.indexOf(id); if (i > -1) this.selectedIds.splice(i, 1); else this.selectedIds.push(id); },
+    toggleSelectAll() { if (this.selectedIds.length === this.list.length) this.selectedIds = []; else this.selectedIds = this.list.map(x => x.id); },
+    isSelected(id) { return this.selectedIds.includes(id); },
+    confirmBatch(action) { this.batchAction = action; this.batchReason = ''; this.batchModal = true; },
+    async doBatch() {
+      if (!this.selectedIds.length) { this.showToast('请先选择项', false); return; }
+      this.batchProcessing = true;
+      try {
+        const body = { action: this.batchAction, ids: this.selectedIds };
+        if (this.batchAction === 'reject' && this.batchReason) body.reason = this.batchReason;
+        const r = await this.api('/api/admin/batch-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        this.batchModal = false;
+        if (r.ok) { const d = await r.json(); this.showToast(d.data?.message || '操作完成'); this.selectedIds = []; this.cachedList = { pending: null, approved: null, rejected: null }; await this.loadList(this.tab, true); await this.loadCounts(); }
+        else { const d = await r.json(); this.showToast(d.error || '操作失败', false); }
+      } catch { this.showToast('操作失败', false); }
+      this.batchProcessing = false;
     },
 
     openChangeStatus(item) {

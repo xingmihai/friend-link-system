@@ -50,7 +50,7 @@ export async function onRequestPost({ request, env }) {
         </td></tr></table>`;
       await queueEmail(env, `🎉 友链已通过！${record.title}`,
         buildEmailHtml('✅ 审核通过', content, '查看详情', `${origin}/check`), record.email);
-      // 立即触发发送
+      await flushEmailQueue(request, env);
     }
 
     return ok({ message: '已通过', record });
@@ -84,7 +84,7 @@ export async function onRequestPost({ request, env }) {
         <font color="#9ca3af" style="color:#9ca3af">如果仍有疑问，可以重新提交申请</font>`;
       await queueEmail(env, `😅 友链未通过 - ${record.title}`,
         buildEmailHtml('❌ 未通过审核', content, '查看详情', `${origin}/check`), record.email);
-      // 立即触发发送
+      await flushEmailQueue(request, env);
     }
 
     return ok({ message: '已拒绝' });
