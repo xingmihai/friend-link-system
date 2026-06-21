@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
   if (errors.length) return err('校验失败', 400, { errors });
 
   // 全局速率限制：每分钟最多 30 次提交
-  if (!(await globalRateLimit(env, 'submit', 30, 180))) {
+  if (!(await globalRateLimit(env, 'submit', 30, 300))) {
     return new Response(JSON.stringify({ error: '请求过于频繁，请稍后再试' }), {
       status: 429,
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }

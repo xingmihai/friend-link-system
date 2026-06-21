@@ -2,7 +2,7 @@
 import { ok, err, getList, globalRateLimit } from './_utils.js';
 
 export async function onRequestGet({ request, env }) {
-  if (!(await globalRateLimit(env, 'status', 70, 180))) {
+  if (!(await globalRateLimit(env, 'status', 70, 300))) {
     return new Response(JSON.stringify({ error: '请求过于频繁' }), {
       status: 429,
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }

@@ -279,26 +279,32 @@ init({
         <div x-show="['pending','approved','rejected'].includes(tab)" x-transition.opacity.duration.200>
           <h2 class="text-2xl font-bold text-[#1a1a2e] mb-4" x-text="tabTitle"></h2>
           <!-- 批量操作栏 -->
-          <div x-show="tab==='pending'||tab==='rejected'" class="flex items-center gap-2 mb-3 flex-wrap">
-            <label class="flex items-center gap-1 text-sm text-[#4a4a5a] cursor-pointer select-none">
-              <input type="checkbox" @change="toggleSelectAll()" :checked="selectedIds.length===list.length&&list.length>0" class="w-4 h-4 accent-[#5046e4]">
-              全选（<span x-text="selectedIds.length"></span>）
-            </label>
-            <template x-if="tab==='pending'">
-              <button @click="confirmBatch('approve')" :disabled="!selectedIds.length" class="btn bg-teal-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量通过</button>
-            </template>
-            <template x-if="tab==='pending'">
-              <button @click="confirmBatch('reject')" :disabled="!selectedIds.length" class="btn bg-amber-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量拒绝</button>
-            </template>
-            <template x-if="tab==='rejected'">
-              <button @click="confirmBatch('delete')" :disabled="!selectedIds.length" class="btn bg-red-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量删除</button>
+          <div x-show="tab==='pending'||tab==='rejected'" class="mb-3">
+            <button @click="batchMode=!batchMode" class="btn border border-[#5046e4] text-[#5046e4] px-3 py-1.5 rounded text-sm"
+              x-text="batchMode?'取消批量':'批量管理'"></button>
+            <template x-if="batchMode">
+              <div class="flex items-center gap-2 flex-wrap mt-2">
+                <label class="flex items-center gap-1 text-sm text-[#4a4a5a] cursor-pointer select-none">
+                  <input type="checkbox" @change="toggleSelectAll()" :checked="selectedIds.length===list.length&&list.length>0" class="w-4 h-4 accent-[#5046e4]">
+                  全选（<span x-text="selectedIds.length"></span>）
+                </label>
+                <template x-if="tab==='pending'">
+                  <button @click="confirmBatch('approve')" :disabled="!selectedIds.length" class="btn bg-teal-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量通过</button>
+                </template>
+                <template x-if="tab==='pending'">
+                  <button @click="confirmBatch('reject')" :disabled="!selectedIds.length" class="btn bg-amber-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量拒绝</button>
+                </template>
+                <template x-if="tab==='rejected'">
+                  <button @click="confirmBatch('delete')" :disabled="!selectedIds.length" class="btn bg-red-600 text-white px-3 py-1.5 rounded text-sm" :class="!selectedIds.length&&'opacity-50'">批量删除</button>
+                </template>
+              </div>
             </template>
           </div>
           <div class="space-y-3">
             <template x-for="item in list" :key="item.id">
               <div class="card rounded-xl p-4">
                 <div class="flex gap-3">
-                  <input type="checkbox" @change="toggleSelect(item.id)" :checked="isSelected(item.id)" class="w-4 h-4 mt-1 accent-[#5046e4] shrink-0" x-show="tab==='pending'||tab==='rejected'">
+                  <input type="checkbox" @change="toggleSelect(item.id)" :checked="isSelected(item.id)" class="w-4 h-4 mt-1 accent-[#5046e4] shrink-0" x-show="batchMode&&(tab==='pending'||tab==='rejected')">
                   <div class="flex flex-col sm:flex-row items-start gap-3 flex-1 min-w-0">
                   <img :src="item.avatar" @error="$el.style.visibility='hidden'"
                     class="w-12 h-12 rounded-lg object-cover shrink-0 bg-gray-200">
@@ -756,7 +762,7 @@ function admin() {
     tab: 'pending', sidebarOpen: (typeof window !== 'undefined' && window.innerWidth >= 1024),
     list: [], counts: { pending: 0, approved: 0, rejected: 0 }, loading: false, _loadingTab: '', cachedList: { pending: null, approved: null, rejected: null },
     // 批量操作
-    selectedIds: [], batchAction: '', batchModal: false, batchReason: '', batchProcessing: false,
+    selectedIds: [], batchAction: '', batchModal: false, batchReason: '', batchProcessing: false, batchMode: false,
     // RSS
     rssStatus: { cursor: 0, lastUpdate: null, currentFeeds: [], articleCount: 0 }, refreshing: false,
     // 配置
@@ -860,6 +866,8 @@ function admin() {
 
     // 切换 tab
     switchTab(t) {
+      this.batchMode = false;
+      this.selectedIds = [];
       this.tab = t;
       if (window.innerWidth < 1024) this.sidebarOpen = false;
       if (['pending', 'approved', 'rejected'].includes(t)) {
